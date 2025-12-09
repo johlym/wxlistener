@@ -315,10 +315,46 @@ cargo test --test client_integration_test
 - Tests live data parsing
 - Tests error handling (connection refused, etc.)
 
+## Fuzzing
+
+We use `cargo-fuzz` (libFuzzer) to fuzz test binary parsing code. See [FUZZING.md](fuzzing.md) for details.
+
+```bash
+# Quick fuzz test (10 seconds)
+cargo fuzz run fuzz_decoder -- -max_total_time=10
+cargo fuzz run fuzz_protocol -- -max_total_time=10
+```
+
+**Fuzz targets:**
+
+- `fuzz_decoder` - Tests all decoder functions with arbitrary input
+- `fuzz_protocol` - Tests packet building and validation
+
+## Performance Benchmarks
+
+We use Criterion.rs for performance benchmarking. See [BENCHMARKING.md](benchmarking.md) for details.
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark suite
+cargo bench --bench decoder_bench
+cargo bench --bench protocol_bench
+```
+
+**Benchmark results (typical):**
+
+- `decode_temp`: ~1.0 ns
+- `decode_short`: ~0.76 ns
+- `decode_int`: ~0.76 ns
+- `calc_checksum` (50B): ~2.7 ns
+- `build_cmd_packet`: ~63-170 ns (depending on payload)
+- `verify_response`: ~1.7 ns
+- `full_packet_roundtrip`: ~85 ns
+
 ## Future Testing Improvements
 
-- [ ] Add fuzzing for binary parsing
-- [ ] Add performance benchmarks
 - [ ] Add test coverage reporting
 - [ ] Add mutation testing
 - [ ] Add end-to-end tests with Docker
