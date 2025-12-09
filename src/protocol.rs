@@ -108,4 +108,71 @@ mod tests {
         let response = vec![0xFF, 0xFF, 0x50];
         assert!(!verify_response(&response, 0x50));
     }
+
+    // Property-based tests
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_build_packet_has_header(cmd: u8, payload in prop::collection::vec(any::<u8>(), 0..20)) {
+                // Every packet should start with the header
+                let packet = build_cmd_packet(cmd, &payload);
+                prop_assert_eq!(packet[0], HEADER[0]);
+                prop_assert_eq!(packet[1], HEADER[1]);
+            }
+
+            #[test]
+            fn prop_build_packet_has_command(cmd: u8, payload in prop::collection::vec(any::<u8>(), 0..20)) {
+                // Command should be at position 2
+                let packet = build_cmd_packet(cmd, &payload);
+                prop_assert_eq!(packet[2], cmd);
+            }
+
+            #[test]
+            fn prop_build_packet_correct_size(cmd: u8, payload in prop::collection::vec(any::<u8>(), 0..20)) {
+                // Packet size should be: header(2) + cmd(1) + size(1) + payload + checksum(1)
+                let packet = build_cmd_packet(cmd, &payload);
+                let expected_size = 2 + 1 + 1 + payload.len() + 1;
+                prop_assert_eq!(packet.len(), expected_size);
+            }
+
+            #[test]
+            fn prop_checksum_deterministic(data in prop::collection::vec(any::<u8>(), 1..100)) {
+                // Same data should always produce same checksum
+                let checksum1 = calc_checksum(&data);
+                let checksum2 = calc_checksum(&data);
+                prop_assert_eq!(checksum1, checksum2);
+            }
+
+            #[test]
+            fn prop_checksum_in_range(data in prop::collection::vec(any::<u8>(), 1..100)) {
+                // Checksum should always be a valid u8
+                let _checksum = calc_checksum(&data);
+                // This test verifies the function doesn't panic
+                prop_assert!(true);
+            }
+
+            #[test]
+            fn prop_verify_response_rejects_wrong_command(
+                cmd: u8,
+                wrong_cmd: u8,
+                payload in prop::collection::vec(any::<u8>(), 0..20)
+            ) {
+                // Build a valid packet but check with wrong command
+                let packet = build_cmd_packet(cmd, &payload);
+                if cmd != wrong_cmd {
+                    prop_assert!(!verify_response(&packet, wrong_cmd));
+                }
+            }
+
+            #[test]
+            fn prop_build_and_verify_roundtrip(cmd: u8, payload in prop::collection::vec(any::<u8>(), 0..20)) {
+                // A packet we build should verify correctly
+                let packet = build_cmd_packet(cmd, &payload);
+                prop_assert!(verify_response(&packet, cmd));
+            }
+        }
+    }
 }

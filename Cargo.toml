@@ -13,3 +13,4 @@ anyhow = "1.0"
 
 [dev-dependencies]
 tempfile = "3.8"
+proptest = "1.4"

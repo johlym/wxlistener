@@ -93,4 +93,66 @@ mod tests {
         let data = [0x27, 0x94];
         assert_eq!(decode_pressure(&data), 1013.2);
     }
+
+    // Property-based tests
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_decode_temp_roundtrip(temp in -500..500i16) {
+                // Test that encoding and decoding temperature is consistent
+                let encoded = ((temp as i32 * 10) as u16).to_be_bytes();
+                let decoded = decode_temp(&encoded);
+                let expected = temp as f64 / 10.0 * 10.0; // Original temp * 10 / 10
+                prop_assert!((decoded - expected).abs() < 0.1);
+            }
+
+            #[test]
+            fn prop_decode_short_always_positive(high: u8, low: u8) {
+                // decode_short should always return a positive number
+                let data = [high, low];
+                let result = decode_short(&data);
+                prop_assert!(result >= 0.0);
+                prop_assert!(result <= 65535.0);
+            }
+
+            #[test]
+            fn prop_decode_wind_in_range(high: u8, low: u8) {
+                // Wind speed should be in reasonable range after decoding
+                let data = [high, low];
+                let result = decode_wind(&data);
+                prop_assert!(result >= 0.0);
+                prop_assert!(result <= 6553.5); // Max u16 / 10
+            }
+
+            #[test]
+            fn prop_decode_rain_in_range(high: u8, low: u8) {
+                // Rain should be in reasonable range after decoding
+                let data = [high, low];
+                let result = decode_rain(&data);
+                prop_assert!(result >= 0.0);
+                prop_assert!(result <= 6553.5); // Max u16 / 10
+            }
+
+            #[test]
+            fn prop_decode_pressure_in_range(high: u8, low: u8) {
+                // Pressure should be in reasonable range
+                let data = [high, low];
+                let result = decode_pressure(&data);
+                prop_assert!(result >= 0.0);
+                prop_assert!(result <= 6553.5); // Max u16 / 10
+            }
+
+            #[test]
+            fn prop_decode_int_always_positive(b0: u8, b1: u8, b2: u8, b3: u8) {
+                // decode_int should always return a positive number
+                let data = [b0, b1, b2, b3];
+                let result = decode_int(&data);
+                prop_assert!(result >= 0.0);
+                prop_assert!(result <= 4294967295.0); // Max u32
+            }
+        }
+    }
 }

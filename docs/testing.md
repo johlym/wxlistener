@@ -280,10 +280,43 @@ cargo test -- --test-threads=1
 2. **Live Data Parsing**: Full parsing tests require complete mock responses
 3. **Error Cases**: Some error conditions are hard to test without a real device
 
+## Advanced Testing
+
+### Property-Based Testing
+
+We use `proptest` for property-based testing to verify invariants across many random inputs:
+
+```bash
+# Property tests run automatically with cargo test
+cargo test prop_
+```
+
+**Property tests include:**
+
+- Temperature encoding/decoding roundtrip
+- Value range validation for all decoders
+- Packet structure invariants
+- Checksum determinism
+
+### Mock TCP Server
+
+Integration tests use a mock TCP server to test client behavior without a real device:
+
+```bash
+# Run integration tests with mock server
+cargo test --test client_integration_test
+```
+
+**Mock server features:**
+
+- Simulates GW1000/GW2000 device responses
+- Tests firmware version retrieval
+- Tests MAC address retrieval
+- Tests live data parsing
+- Tests error handling (connection refused, etc.)
+
 ## Future Testing Improvements
 
-- [ ] Add mock TCP server for full integration testing
-- [ ] Add property-based testing with `proptest`
 - [ ] Add fuzzing for binary parsing
 - [ ] Add performance benchmarks
 - [ ] Add test coverage reporting
