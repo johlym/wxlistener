@@ -353,8 +353,31 @@ cargo bench --bench protocol_bench
 - `verify_response`: ~1.7 ns
 - `full_packet_roundtrip`: ~85 ns
 
+## Test Coverage
+
+We use `cargo-llvm-cov` for test coverage reporting. See [coverage.md](coverage.md) for details.
+
+```bash
+# Generate coverage report
+bin/coverage
+
+# Or manually
+cargo llvm-cov --all-features --workspace --html
+open target/llvm-cov/html/index.html
+```
+
+**Current Coverage:**
+
+- **Overall**: 50.77% lines, 46.25% regions
+- **decoder.rs**: 100%
+- **protocol.rs**: 100%
+- **client.rs**: 37%
+- **config.rs**: 0%
+- **output.rs**: 0%
+
+**Target**: 75% overall coverage
+
 ## Future Testing Improvements
 
-- [ ] Add test coverage reporting
 - [ ] Add mutation testing
 - [ ] Add end-to-end tests with Docker

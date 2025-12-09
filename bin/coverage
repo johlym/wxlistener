@@ -1,0 +1,112 @@
+#!/bin/bash
+# Generate test coverage report for wxlistener
+
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+print_section() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+echo ""
+echo -e "${BLUE}📊 wxlistener Test Coverage Report${NC}"
+echo ""
+
+# Check which coverage tool to use
+if command -v cargo-llvm-cov &> /dev/null; then
+    TOOL="llvm-cov"
+elif command -v cargo-tarpaulin &> /dev/null; then
+    TOOL="tarpaulin"
+else
+    TOOL="none"
+fi
+
+if [ "$TOOL" = "none" ]; then
+    print_section "⚠️  No coverage tool found"
+    echo "Please install one of the following:"
+    echo ""
+    echo "Option 1: cargo-llvm-cov (recommended, cross-platform)"
+    echo "  ${BLUE}cargo install cargo-llvm-cov${NC}"
+    echo ""
+    echo "Option 2: cargo-tarpaulin (Linux/macOS only)"
+    echo "  ${BLUE}cargo install cargo-tarpaulin${NC}"
+    echo ""
+    exit 1
+fi
+
+print_section "🔧 Using coverage tool: $TOOL"
+
+if [ "$TOOL" = "llvm-cov" ]; then
+    print_section "📊 Generating coverage with cargo-llvm-cov"
+    
+    # Generate HTML report
+    echo "Running tests with coverage..."
+    cargo llvm-cov --all-features --workspace --html
+    
+    print_success "Coverage report generated"
+    echo ""
+    echo "HTML report: ${BLUE}target/llvm-cov/html/index.html${NC}"
+    echo ""
+    
+    # Generate summary
+    echo "Coverage summary:"
+    cargo llvm-cov --all-features --workspace --summary-only
+    
+    # Ask to open report
+    echo ""
+    read -p "Open HTML report in browser? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open target/llvm-cov/html/index.html
+        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            xdg-open target/llvm-cov/html/index.html
+        fi
+        print_success "Opened in browser"
+    fi
+    
+elif [ "$TOOL" = "tarpaulin" ]; then
+    print_section "📊 Generating coverage with cargo-tarpaulin"
+    
+    # Generate HTML report
+    echo "Running tests with coverage..."
+    cargo tarpaulin --all-features --workspace --out Html --output-dir target/tarpaulin
+    
+    print_success "Coverage report generated"
+    echo ""
+    echo "HTML report: ${BLUE}target/tarpaulin/index.html${NC}"
+    echo ""
+    
+    # Ask to open report
+    read -p "Open HTML report in browser? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open target/tarpaulin/index.html
+        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            xdg-open target/tarpaulin/index.html
+        fi
+        print_success "Opened in browser"
+    fi
+fi
+
+echo ""
+print_section "✅ Coverage report complete!"
+echo ""
