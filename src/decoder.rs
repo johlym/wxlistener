@@ -1,5 +1,4 @@
 /// Decoding functions for GW1000 binary data
-
 pub fn decode_temp(data: &[u8]) -> f64 {
     let value = ((data[0] as u16) << 8) | (data[1] as u16);
     let value = if value > 32767 {

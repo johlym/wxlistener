@@ -1,6 +1,5 @@
 /// Protocol constants and packet building utilities
 /// Separated for easier testing
-
 pub const HEADER: [u8; 2] = [0xFF, 0xFF];
 
 pub fn build_cmd_packet(cmd_code: u8, payload: &[u8]) -> Vec<u8> {
