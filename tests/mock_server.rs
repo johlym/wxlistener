@@ -16,7 +16,7 @@ impl MockGW1000Server {
     pub fn new() -> std::io::Result<Self> {
         let listener = TcpListener::bind("127.0.0.1:0")?;
         listener.set_nonblocking(false)?;
-        
+
         Ok(Self {
             listener,
             responses: Arc::new(Mutex::new(Vec::new())),
@@ -58,7 +58,7 @@ impl MockGW1000Server {
                             if n > 0 {
                                 // Get the next canned response
                                 let response = responses.lock().unwrap().pop();
-                                
+
                                 if let Some(resp) = response {
                                     // Send the response
                                     stream.write_all(&resp).ok();
@@ -94,18 +94,18 @@ impl ServerHandle {
 pub fn mock_firmware_response(version: &str) -> Vec<u8> {
     let mut response = vec![
         0xFF, 0xFF, // Header
-        0x50,       // Command (CMD_READ_FIRMWARE_VERSION)
+        0x50, // Command (CMD_READ_FIRMWARE_VERSION)
     ];
-    
+
     let version_bytes = version.as_bytes();
     let size = 1 + 1 + version_bytes.len() + 1; // cmd + size + data + checksum
     response.push(size as u8);
     response.extend_from_slice(version_bytes);
-    
+
     // Calculate checksum
     let checksum: u8 = response[2..].iter().map(|&b| b as u32).sum::<u32>() as u8;
     response.push(checksum);
-    
+
     response
 }
 
@@ -113,16 +113,16 @@ pub fn mock_firmware_response(version: &str) -> Vec<u8> {
 pub fn mock_mac_response(mac: &[u8; 6]) -> Vec<u8> {
     let mut response = vec![
         0xFF, 0xFF, // Header
-        0x26,       // Command (CMD_READ_STATION_MAC)
-        0x09,       // Size
+        0x26, // Command (CMD_READ_STATION_MAC)
+        0x09, // Size
     ];
-    
+
     response.extend_from_slice(mac);
-    
+
     // Calculate checksum
     let checksum: u8 = response[2..].iter().map(|&b| b as u32).sum::<u32>() as u8;
     response.push(checksum);
-    
+
     response
 }
 
@@ -130,32 +130,32 @@ pub fn mock_mac_response(mac: &[u8; 6]) -> Vec<u8> {
 pub fn mock_livedata_response() -> Vec<u8> {
     let mut response = vec![
         0xFF, 0xFF, // Header
-        0x27,       // Command (CMD_GW1000_LIVEDATA)
+        0x27, // Command (CMD_GW1000_LIVEDATA)
     ];
-    
+
     // Build the data payload
     let mut data = Vec::new();
-    
+
     // 0x02: outtemp = 25.5°C (255 = 0x00FF)
     data.extend_from_slice(&[0x02, 0x00, 0xFF]);
-    
+
     // 0x07: outhumid = 65%
     data.extend_from_slice(&[0x07, 0x41]);
-    
+
     // Calculate size: cmd(1) + size(2) + data + checksum(1)
     let size = 1 + 2 + data.len() + 1;
-    
+
     // Add size as big-endian u16
     response.push(((size >> 8) & 0xFF) as u8);
     response.push((size & 0xFF) as u8);
-    
+
     // Add data
     response.extend_from_slice(&data);
-    
+
     // Calculate checksum (from command onwards, excluding header and checksum itself)
     let checksum: u8 = response[2..].iter().map(|&b| b as u32).sum::<u32>() as u8;
     response.push(checksum);
-    
+
     response
 }
 

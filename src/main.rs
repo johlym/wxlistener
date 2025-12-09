@@ -3,6 +3,7 @@ mod config;
 mod decoder;
 mod output;
 mod protocol;
+mod web;
 
 use anyhow::Result;
 use chrono::Utc;
@@ -12,12 +13,24 @@ use std::time::Duration;
 use client::GW1000Client;
 use config::Args;
 use output::print_livedata;
+use web::{run_web_server, WebServerConfig};
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     // Get connection info from args or config
     let (ip, port) = args.get_connection_info()?;
+
+    // Check if web mode is enabled
+    if args.web {
+        let web_config = WebServerConfig {
+            ip: args.web_host.clone(),
+            port: args.web_port,
+            interval: args.continuous,
+        };
+        return run_web_server(web_config, ip, port).await;
+    }
 
     let client = GW1000Client::new(ip.clone(), port);
 
@@ -39,36 +52,25 @@ fn main() -> Result<()> {
         Err(e) => println!("✗ Failed to get MAC: {}", e),
     }
 
-    // Continuous or single read
-    if let Some(interval) = args.continuous {
-        println!("\n--- Continuous Mode (every {} seconds) ---", interval);
-        println!("Press Ctrl+C to stop\n");
+    // Continuous mode (default)
+    println!(
+        "\n--- Continuous Mode (every {} seconds) ---",
+        args.continuous
+    );
+    println!("Press Ctrl+C to stop\n");
 
-        loop {
-            match client.get_livedata() {
-                Ok(data) => {
-                    let timestamp = Utc::now();
-                    if args.format == "json" {
-                        println!("{}", serde_json::to_string_pretty(&data)?);
-                    } else {
-                        print_livedata(&data, &timestamp);
-                    }
+    loop {
+        match client.get_livedata() {
+            Ok(data) => {
+                let timestamp = Utc::now();
+                if args.format == "json" {
+                    println!("{}", serde_json::to_string_pretty(&data)?);
+                } else {
+                    print_livedata(&data, &timestamp);
                 }
-                Err(e) => eprintln!("Error: {}", e),
             }
-            std::thread::sleep(Duration::from_secs(interval));
+            Err(e) => eprintln!("Error: {}", e),
         }
-    } else {
-        println!("\n--- Live Data ---");
-        let data = client.get_livedata()?;
-        let timestamp = Utc::now();
-
-        if args.format == "json" {
-            println!("{}", serde_json::to_string_pretty(&data)?);
-        } else {
-            print_livedata(&data, &timestamp);
-        }
+        tokio::time::sleep(Duration::from_secs(args.continuous)).await;
     }
-
-    Ok(())
 }

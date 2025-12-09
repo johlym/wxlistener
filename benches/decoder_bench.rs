@@ -3,9 +3,7 @@ use wxlistener::decoder::*;
 
 fn benchmark_decode_temp(c: &mut Criterion) {
     let data = [0x00, 0xFF]; // 25.5°C
-    c.bench_function("decode_temp", |b| {
-        b.iter(|| decode_temp(black_box(&data)))
-    });
+    c.bench_function("decode_temp", |b| b.iter(|| decode_temp(black_box(&data))));
 }
 
 fn benchmark_decode_temp_negative(c: &mut Criterion) {
@@ -24,23 +22,17 @@ fn benchmark_decode_short(c: &mut Criterion) {
 
 fn benchmark_decode_int(c: &mut Criterion) {
     let data = [0x00, 0x0F, 0x42, 0x40]; // 1000000
-    c.bench_function("decode_int", |b| {
-        b.iter(|| decode_int(black_box(&data)))
-    });
+    c.bench_function("decode_int", |b| b.iter(|| decode_int(black_box(&data))));
 }
 
 fn benchmark_decode_wind(c: &mut Criterion) {
     let data = [0x00, 0x7D]; // 12.5 m/s
-    c.bench_function("decode_wind", |b| {
-        b.iter(|| decode_wind(black_box(&data)))
-    });
+    c.bench_function("decode_wind", |b| b.iter(|| decode_wind(black_box(&data))));
 }
 
 fn benchmark_decode_rain(c: &mut Criterion) {
     let data = [0x01, 0xC5]; // 45.3 mm
-    c.bench_function("decode_rain", |b| {
-        b.iter(|| decode_rain(black_box(&data)))
-    });
+    c.bench_function("decode_rain", |b| b.iter(|| decode_rain(black_box(&data))));
 }
 
 fn benchmark_decode_pressure(c: &mut Criterion) {
@@ -53,7 +45,7 @@ fn benchmark_decode_pressure(c: &mut Criterion) {
 fn benchmark_all_decoders(c: &mut Criterion) {
     let data_2 = [0x00, 0xFF];
     let data_4 = [0x00, 0x0F, 0x42, 0x40];
-    
+
     c.bench_function("all_decoders", |b| {
         b.iter(|| {
             black_box(decode_temp(&data_2));

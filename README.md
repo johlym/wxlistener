@@ -13,7 +13,8 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **Fast & efficient** - Written in Rust for maximum performance
 - **Config file or CLI args** - Flexible configuration options
 - **JSON or text output** - Machine-readable or human-friendly
-- **Continuous monitoring** - Poll at regular intervals
+- **Continuous monitoring** - Poll at regular intervals (default: 5 seconds)
+- **Web interface** - Real-time browser dashboard with WebSocket updates
 - **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
 - **Docker support** - Run in containers for easy deployment
 
@@ -90,7 +91,35 @@ wxlistener --ip 10.31.100.42 --format json
 
 # Continuous monitoring (poll every 30 seconds)
 wxlistener --ip 10.31.100.42 --continuous 30
+
+# Web interface mode (default port 18888)
+wxlistener --ip 10.31.100.42 --web
+
+# Web interface with custom port
+wxlistener --ip 10.31.100.42 --web --web-port 8080
+
+# Web interface with custom host binding
+wxlistener --ip 10.31.100.42 --web --web-host 127.0.0.1
 ```
+
+### Web Interface
+
+The web interface provides a real-time dashboard that automatically updates every 5 seconds via WebSocket:
+
+```bash
+# Start the web server
+wxlistener --ip 10.31.100.42 --web
+
+# Open your browser to http://localhost:18888
+```
+
+Features:
+
+- **Real-time updates** - Data refreshes automatically every 5 seconds
+- **WebSocket connection** - Efficient, low-latency updates
+- **Auto-reconnect** - Automatically reconnects if connection is lost
+- **Dark theme** - Easy on the eyes for 24/7 monitoring
+- **Plain text display** - Simple, readable format with formatted units
 
 ### Configuration File
 

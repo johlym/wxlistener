@@ -77,7 +77,10 @@ mod tests {
 
     #[test]
     fn test_format_value_heap_free() {
-        assert_eq!(format_value("heap_free", 149240.0), "149240 bytes (145.7 KB)");
+        assert_eq!(
+            format_value("heap_free", 149240.0),
+            "149240 bytes (145.7 KB)"
+        );
         assert_eq!(format_value("heap_free", 1024.0), "1024 bytes (1.0 KB)");
     }
 

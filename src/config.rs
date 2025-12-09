@@ -24,9 +24,21 @@ pub struct Args {
     #[arg(short = 'f', long, default_value = "text")]
     pub format: String,
 
-    /// Continuous mode - poll every N seconds
+    /// Continuous mode - poll every N seconds (default: 5)
+    #[arg(long, default_value = "5")]
+    pub continuous: u64,
+
+    /// Run web server mode
     #[arg(long)]
-    pub continuous: Option<u64>,
+    pub web: bool,
+
+    /// Web server bind address (default: 0.0.0.0)
+    #[arg(long, default_value = "0.0.0.0")]
+    pub web_host: String,
+
+    /// Web server port (default: 18888)
+    #[arg(long, default_value = "18888")]
+    pub web_port: u16,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +86,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
@@ -84,7 +97,10 @@ mod tests {
             port: Some(45000),
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -99,7 +115,10 @@ mod tests {
             port: None,
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -118,7 +137,10 @@ mod tests {
             port: None,
             config: Some(temp_file.path().to_path_buf()),
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -137,7 +159,10 @@ mod tests {
             port: None,
             config: Some(temp_file.path().to_path_buf()),
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -156,7 +181,10 @@ mod tests {
             port: None,
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let result = args.get_connection_info();
@@ -174,7 +202,10 @@ mod tests {
             port: None,
             config: Some(PathBuf::from("/nonexistent/config.toml")),
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let result = args.get_connection_info();
@@ -195,7 +226,10 @@ mod tests {
             port: None,
             config: Some(temp_file.path().to_path_buf()),
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let result = args.get_connection_info();
@@ -235,11 +269,12 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_connection_info_from_env() {
         // Clean up first to ensure clean state
         std::env::remove_var("WXLISTENER_IP");
         std::env::remove_var("WXLISTENER_PORT");
-        
+
         // Set environment variables
         std::env::set_var("WXLISTENER_IP", "192.168.1.50");
         std::env::set_var("WXLISTENER_PORT", "12345");
@@ -249,7 +284,10 @@ mod tests {
             port: None,
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -262,11 +300,12 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_connection_info_from_env_default_port() {
         // Clean up first to ensure clean state
         std::env::remove_var("WXLISTENER_IP");
         std::env::remove_var("WXLISTENER_PORT");
-        
+
         // Set only IP
         std::env::set_var("WXLISTENER_IP", "10.0.0.5");
 
@@ -275,7 +314,10 @@ mod tests {
             port: None,
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -288,6 +330,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_priority_cli_over_env() {
         // Set environment variable
         std::env::set_var("WXLISTENER_IP", "192.168.1.1");
@@ -298,7 +341,10 @@ mod tests {
             port: Some(9999),
             config: None,
             format: "text".to_string(),
-            continuous: None,
+            continuous: 5,
+            web: false,
+            web_host: "0.0.0.0".to_string(),
+            web_port: 18888,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
