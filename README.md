@@ -166,5 +166,5 @@ As much as I wanted to license it under MIT, since this is a derivative work of 
 
 ## Credits
 
-- Original Python driver [weewx-gw1000](https://github.com/gjr80/weewx-gw1000) by Gary Roderick
-- Further improved upon by [@millardiang](https://github.com/Millardiang/weewx-gw1000)
+- Original Python driver by Gary Roderick
+- Further improved upon by [Ian Millard](https://github.com/Millardiang/weewx-gw1000)
