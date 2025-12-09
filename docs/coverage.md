@@ -7,8 +7,8 @@ Test coverage measures how much of your code is executed during tests. We use `c
 ## Current Coverage
 
 ```
-Overall Coverage: 50.77% lines, 46.25% regions
-Functions: 87.50% (35/40)
+Overall Coverage: 72.93% lines, 70.80% regions
+Functions: 98.36% (60/61)
 ```
 
 ### By Module
@@ -17,9 +17,9 @@ Functions: 87.50% (35/40)
 | --------------- | ------ | ------- | --------- | ------------- |
 | **decoder.rs**  | 100%   | 100%    | 100%      | ✅ Excellent  |
 | **protocol.rs** | 100%   | 100%    | 100%      | ✅ Excellent  |
+| **config.rs**   | 100%   | 100%    | 100%      | ✅ Excellent  |
+| **output.rs**   | 100%   | 100%    | 100%      | ✅ Excellent  |
 | **client.rs**   | 37.16% | 38.29%  | 100%      | ⚠️ Needs work |
-| **config.rs**   | 0%     | 0%      | 0%        | ❌ Not tested |
-| **output.rs**   | 0%     | 0%      | 0%        | ❌ Not tested |
 | **main.rs**     | 0%     | 0%      | 0%        | ❌ Not tested |
 
 ## Quick Start

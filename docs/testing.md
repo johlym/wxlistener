@@ -368,14 +368,15 @@ open target/llvm-cov/html/index.html
 
 **Current Coverage:**
 
-- **Overall**: 50.77% lines, 46.25% regions
+- **Overall**: 72.93% lines, 70.80% regions
 - **decoder.rs**: 100%
 - **protocol.rs**: 100%
+- **config.rs**: 100%
+- **output.rs**: 100%
 - **client.rs**: 37%
-- **config.rs**: 0%
-- **output.rs**: 0%
+- **main.rs**: 0%
 
-**Target**: 75% overall coverage
+**Target**: 75% overall coverage (Almost there!)
 
 ## Future Testing Improvements
 
