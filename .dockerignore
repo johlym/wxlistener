@@ -1,0 +1,56 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# Cargo lock for libraries (keep for binaries)
+# Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Test artifacts
+fuzz/
+coverage/
+*.profdata
+*.profraw
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts (not needed in production image)
+bin/
+scripts/
+
+# Coverage and benchmark results
+target/criterion/
+target/llvm-cov/
+target/tarpaulin/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

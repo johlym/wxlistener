@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  wxlistener:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wxlistener:latest
+    container_name: wxlistener
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - WXLISTENER_IP=${WXLISTENER_IP:-10.31.100.42}
+      - WXLISTENER_PORT=${WXLISTENER_PORT:-45000}
+      - WXLISTENER_INTERVAL=${WXLISTENER_INTERVAL:-60}
+      - WXLISTENER_FORMAT=${WXLISTENER_FORMAT:-text}
+      - RUST_LOG=${RUST_LOG:-info}
+    # No command needed - uses defaults from Dockerfile
+
+  # Continuous monitoring mode
+  wxlistener-continuous:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wxlistener:latest
+    container_name: wxlistener-continuous
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - ./wxlistener.toml:/home/wxlistener/wxlistener.toml:ro
+      - ./data:/home/wxlistener/data
+    command:
+      ["--config", "wxlistener.toml", "--continuous", "60", "--format", "json"]
+    profiles:
+      - continuous
+
+  # Development environment with mounted source
+  wxlistener-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    image: wxlistener:dev
+    container_name: wxlistener-dev
+    network_mode: host
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    working_dir: /app
+    command: ["cargo", "run", "--", "--help"]
+    profiles:
+      - dev
+
+volumes:
+  cargo-cache:
+  target-cache:

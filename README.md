@@ -15,6 +15,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **JSON or text output** - Machine-readable or human-friendly
 - **Continuous monitoring** - Poll at regular intervals
 - **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
+- **Docker support** - Run in containers for easy deployment
 
 ## TODO
 
@@ -41,6 +42,21 @@ cargo build --release
 # Copy it anywhere in your PATH
 sudo cp target/release/wxlistener /usr/local/bin/
 ```
+
+### Docker
+
+```bash
+# Build the image
+bin/docker-build
+
+# Run with config file
+bin/docker-run single
+
+# Or use docker-compose
+docker-compose up
+```
+
+See [docs/DOCKER.md](docs/DOCKER.md) for detailed Docker documentation.
 
 ## Usage
 

@@ -378,7 +378,25 @@ open target/llvm-cov/html/index.html
 
 **Target**: 75% overall coverage (Almost there!)
 
+## Docker Support
+
+wxlistener can run in Docker containers. See [DOCKER.md](DOCKER.md) for details.
+
+```bash
+# Build image
+bin/docker-build
+
+# Run single read
+bin/docker-run single
+
+# Continuous monitoring
+bin/docker-run continuous 60
+
+# Use docker-compose
+docker-compose up
+```
+
 ## Future Testing Improvements
 
 - [ ] Add mutation testing
-- [ ] Add end-to-end tests with Docker
+- [x] Add end-to-end tests with Docker
