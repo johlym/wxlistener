@@ -399,4 +399,3 @@ docker-compose up
 ## Future Testing Improvements
 
 - [ ] Add mutation testing
-- [x] Add end-to-end tests with Docker
