@@ -1,0 +1,65 @@
+#!/bin/bash
+# Test runner script for wxlistener
+
+set -e
+
+echo "🧪 Running wxlistener test suite..."
+echo ""
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print section headers
+print_section() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+# Check formatting
+print_section "📝 Checking code formatting"
+cargo fmt -- --check
+echo -e "${GREEN}✓ Code formatting OK${NC}"
+echo ""
+
+# Run clippy
+print_section "📎 Running clippy lints"
+cargo clippy -- -D warnings
+echo -e "${GREEN}✓ Clippy checks passed${NC}"
+echo ""
+
+# Run unit tests
+print_section "🔬 Running unit tests"
+cargo test --lib
+echo -e "${GREEN}✓ Unit tests passed${NC}"
+echo ""
+
+# Run integration tests
+print_section "🔗 Running integration tests"
+cargo test --test integration_test
+echo -e "${GREEN}✓ Integration tests passed${NC}"
+echo ""
+
+# Run all tests
+print_section "🧪 Running all tests"
+cargo test --all
+echo -e "${GREEN}✓ All tests passed${NC}"
+echo ""
+
+# Build release
+print_section "🏗️  Building release binary"
+cargo build --release
+echo -e "${GREEN}✓ Release build successful${NC}"
+echo ""
+
+# Summary
+print_section "✅ All checks passed!"
+echo -e "${GREEN}Your code is ready to ship! 🚀${NC}"
+echo ""
+echo "Binary location: ./target/release/wxlistener"
+echo "Binary size: $(du -h ./target/release/wxlistener | cut -f1)"
+echo ""
