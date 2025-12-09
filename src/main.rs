@@ -43,7 +43,7 @@ fn main() -> Result<()> {
     if let Some(interval) = args.continuous {
         println!("\n--- Continuous Mode (every {} seconds) ---", interval);
         println!("Press Ctrl+C to stop\n");
-        
+
         loop {
             match client.get_livedata() {
                 Ok(data) => {
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
         println!("\n--- Live Data ---");
         let data = client.get_livedata()?;
         let timestamp = Utc::now();
-        
+
         if args.format == "json" {
             println!("{}", serde_json::to_string_pretty(&data)?);
         } else {

@@ -46,8 +46,8 @@ impl Args {
         if let Some(config_path) = &self.config {
             let config_str = fs::read_to_string(config_path)
                 .context(format!("Failed to read config file: {:?}", config_path))?;
-            let config: Config = toml::from_str(&config_str)
-                .context("Failed to parse config file")?;
+            let config: Config =
+                toml::from_str(&config_str).context("Failed to parse config file")?;
             Ok((config.ip, config.port))
         } else if let Some(ip) = &self.ip {
             let port = self.port.unwrap_or(45000);

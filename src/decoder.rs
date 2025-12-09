@@ -15,8 +15,10 @@ pub fn decode_short(data: &[u8]) -> f64 {
 }
 
 pub fn decode_int(data: &[u8]) -> f64 {
-    (((data[0] as u32) << 24) | ((data[1] as u32) << 16) | 
-     ((data[2] as u32) << 8) | (data[3] as u32)) as f64
+    (((data[0] as u32) << 24)
+        | ((data[1] as u32) << 16)
+        | ((data[2] as u32) << 8)
+        | (data[3] as u32)) as f64
 }
 
 pub fn decode_wind(data: &[u8]) -> f64 {

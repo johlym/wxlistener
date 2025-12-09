@@ -31,16 +31,14 @@ impl GW1000Client {
 
     fn send_cmd(&self, packet: &[u8]) -> Result<Vec<u8>> {
         let addr = format!("{}:{}", self.ip, self.port);
-        let mut stream = TcpStream::connect_timeout(
-            &addr.parse()?,
-            SOCKET_TIMEOUT
-        ).context("Failed to connect to device")?;
+        let mut stream = TcpStream::connect_timeout(&addr.parse()?, SOCKET_TIMEOUT)
+            .context("Failed to connect to device")?;
 
         stream.set_read_timeout(Some(SOCKET_TIMEOUT))?;
         stream.set_write_timeout(Some(SOCKET_TIMEOUT))?;
 
         stream.write_all(packet)?;
-        
+
         let mut response = vec![0u8; 1024];
         let n = stream.read(&mut response)?;
         response.truncate(n);
@@ -72,7 +70,8 @@ impl GW1000Client {
         if self.check_response(&response, CMD_READ_STATION_MAC) {
             let size = response[3] as usize;
             let data = &response[4..4 + size - 3];
-            let mac = data.iter()
+            let mac = data
+                .iter()
                 .map(|b| format!("{:02X}", b))
                 .collect::<Vec<_>>()
                 .join(":");
@@ -102,144 +101,204 @@ impl GW1000Client {
 
         while index < data.len() {
             let field_addr = data[index];
-            
+
             match field_addr {
-                0x01 => { // intemp
+                0x01 => {
+                    // intemp
                     if index + 2 < data.len() {
-                        let val = decode_temp(&data[index+1..index+3]);
+                        let val = decode_temp(&data[index + 1..index + 3]);
                         result.insert("intemp".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x02 => { // outtemp
+                0x02 => {
+                    // outtemp
                     if index + 2 < data.len() {
-                        let val = decode_temp(&data[index+1..index+3]);
+                        let val = decode_temp(&data[index + 1..index + 3]);
                         result.insert("outtemp".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x06 => { // inhumid
+                0x06 => {
+                    // inhumid
                     if index + 1 < data.len() {
-                        result.insert("inhumid".to_string(), data[index+1] as f64);
+                        result.insert("inhumid".to_string(), data[index + 1] as f64);
                         index += 2;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x07 => { // outhumid
+                0x07 => {
+                    // outhumid
                     if index + 1 < data.len() {
-                        result.insert("outhumid".to_string(), data[index+1] as f64);
+                        result.insert("outhumid".to_string(), data[index + 1] as f64);
                         index += 2;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x08 => { // absbarometer
+                0x08 => {
+                    // absbarometer
                     if index + 2 < data.len() {
-                        let val = decode_pressure(&data[index+1..index+3]);
+                        let val = decode_pressure(&data[index + 1..index + 3]);
                         result.insert("absbarometer".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x09 => { // relbarometer
+                0x09 => {
+                    // relbarometer
                     if index + 2 < data.len() {
-                        let val = decode_pressure(&data[index+1..index+3]);
+                        let val = decode_pressure(&data[index + 1..index + 3]);
                         result.insert("relbarometer".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x0A => { // wind_dir
+                0x0A => {
+                    // wind_dir
                     if index + 2 < data.len() {
-                        let val = decode_short(&data[index+1..index+3]);
+                        let val = decode_short(&data[index + 1..index + 3]);
                         result.insert("wind_dir".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x0B => { // wind_speed
+                0x0B => {
+                    // wind_speed
                     if index + 2 < data.len() {
-                        let val = decode_wind(&data[index+1..index+3]);
+                        let val = decode_wind(&data[index + 1..index + 3]);
                         result.insert("wind_speed".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x0C => { // gust_speed
+                0x0C => {
+                    // gust_speed
                     if index + 2 < data.len() {
-                        let val = decode_wind(&data[index+1..index+3]);
+                        let val = decode_wind(&data[index + 1..index + 3]);
                         result.insert("gust_speed".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x0D => { // rain_event
+                0x0D => {
+                    // rain_event
                     if index + 2 < data.len() {
-                        let val = decode_rain(&data[index+1..index+3]);
+                        let val = decode_rain(&data[index + 1..index + 3]);
                         result.insert("rain_event".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x0E => { // rain_rate
+                0x0E => {
+                    // rain_rate
                     if index + 2 < data.len() {
-                        let val = decode_rain(&data[index+1..index+3]);
+                        let val = decode_rain(&data[index + 1..index + 3]);
                         result.insert("rain_rate".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x10 => { // rain_day
+                0x10 => {
+                    // rain_day
                     if index + 2 < data.len() {
-                        let val = decode_rain(&data[index+1..index+3]);
+                        let val = decode_rain(&data[index + 1..index + 3]);
                         result.insert("rain_day".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x11 => { // rain_week
+                0x11 => {
+                    // rain_week
                     if index + 2 < data.len() {
-                        let val = decode_rain(&data[index+1..index+3]);
+                        let val = decode_rain(&data[index + 1..index + 3]);
                         result.insert("rain_week".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x12 => { // rain_month
+                0x12 => {
+                    // rain_month
                     if index + 4 < data.len() {
-                        let val = decode_int(&data[index+1..index+5]) / 10.0;
+                        let val = decode_int(&data[index + 1..index + 5]) / 10.0;
                         result.insert("rain_month".to_string(), val);
                         index += 5;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x13 => { // rain_year
+                0x13 => {
+                    // rain_year
                     if index + 4 < data.len() {
-                        let val = decode_int(&data[index+1..index+5]) / 10.0;
+                        let val = decode_int(&data[index + 1..index + 5]) / 10.0;
                         result.insert("rain_year".to_string(), val);
                         index += 5;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x15 => { // light
+                0x15 => {
+                    // light
                     if index + 4 < data.len() {
-                        let val = decode_int(&data[index+1..index+5]) / 10.0;
+                        let val = decode_int(&data[index + 1..index + 5]) / 10.0;
                         result.insert("light".to_string(), val);
                         index += 5;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x16 => { // uv
+                0x16 => {
+                    // uv
                     if index + 2 < data.len() {
-                        let val = decode_short(&data[index+1..index+3]);
+                        let val = decode_short(&data[index + 1..index + 3]);
                         result.insert("uv".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x17 => { // uvi
+                0x17 => {
+                    // uvi
                     if index + 1 < data.len() {
-                        result.insert("uvi".to_string(), data[index+1] as f64);
+                        result.insert("uvi".to_string(), data[index + 1] as f64);
                         index += 2;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x19 => { // day_max_wind
+                0x19 => {
+                    // day_max_wind
                     if index + 2 < data.len() {
-                        let val = decode_wind(&data[index+1..index+3]);
+                        let val = decode_wind(&data[index + 1..index + 3]);
                         result.insert("day_max_wind".to_string(), val);
                         index += 3;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
-                0x6C => { // heap_free
+                0x6C => {
+                    // heap_free
                     if index + 4 < data.len() {
-                        let val = decode_int(&data[index+1..index+5]);
+                        let val = decode_int(&data[index + 1..index + 5]);
                         result.insert("heap_free".to_string(), val);
                         index += 5;
-                    } else { break; }
+                    } else {
+                        break;
+                    }
                 }
                 _ => {
                     // Unknown field, skip it
