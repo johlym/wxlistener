@@ -5,6 +5,7 @@ use std::net::TcpStream;
 use std::time::Duration;
 
 use crate::decoder::*;
+use crate::protocol::{build_cmd_packet, verify_response};
 
 // API Command codes
 const CMD_READ_FIRMWARE_VERSION: u8 = 0x50;
@@ -12,7 +13,6 @@ const CMD_READ_STATION_MAC: u8 = 0x26;
 const CMD_GW1000_LIVEDATA: u8 = 0x27;
 
 // Protocol constants
-const HEADER: [u8; 2] = [0xFF, 0xFF];
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub struct GW1000Client {
@@ -26,16 +26,7 @@ impl GW1000Client {
     }
 
     fn build_cmd_packet(&self, cmd_code: u8, payload: &[u8]) -> Vec<u8> {
-        let size = 1 + 1 + payload.len() + 1;
-        let mut body = vec![cmd_code, size as u8];
-        body.extend_from_slice(payload);
-        
-        let checksum = body.iter().map(|&b| b as u32).sum::<u32>() % 256;
-        
-        let mut packet = HEADER.to_vec();
-        packet.extend(body);
-        packet.push(checksum as u8);
-        packet
+        build_cmd_packet(cmd_code, payload)
     }
 
     fn send_cmd(&self, packet: &[u8]) -> Result<Vec<u8>> {
@@ -58,28 +49,7 @@ impl GW1000Client {
     }
 
     fn check_response(&self, response: &[u8], expected_cmd: u8) -> bool {
-        if response.len() < 5 {
-            return false;
-        }
-
-        // Check header
-        if response[0] != 0xFF || response[1] != 0xFF {
-            return false;
-        }
-
-        // Check command code
-        if response[2] != expected_cmd {
-            return false;
-        }
-
-        // Verify checksum
-        let calc_checksum = response[2..response.len()-1]
-            .iter()
-            .map(|&b| b as u32)
-            .sum::<u32>() % 256;
-        let resp_checksum = response[response.len()-1] as u32;
-
-        calc_checksum == resp_checksum
+        verify_response(response, expected_cmd)
     }
 
     pub fn get_firmware_version(&self) -> Result<String> {

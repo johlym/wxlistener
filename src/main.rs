@@ -2,6 +2,7 @@ mod client;
 mod config;
 mod decoder;
 mod output;
+mod protocol;
 
 use anyhow::Result;
 use chrono::Utc;
