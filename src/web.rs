@@ -1,15 +1,20 @@
 use axum::{
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        ConnectInfo,
+    },
     response::{Html, IntoResponse},
     routing::get,
     Router,
 };
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::time;
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 
 use crate::client::GW1000Client;
 use crate::output::format_value;
@@ -223,34 +228,49 @@ pub async fn run_web_server(
         }
     });
 
-    // Build the router
+    // Build the router with logging
     let app = Router::new()
         .route("/", get(index_handler))
-        .route("/ws", get(move |ws| websocket_handler(ws, tx.clone())));
+        .route(
+            "/ws",
+            get(move |ws, addr| websocket_handler(ws, tx.clone(), addr)),
+        )
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
+        );
 
     let addr = format!("{}:{}", config.ip, config.port);
     println!("============================================================");
     println!("Web server starting on http://{}", addr);
-    println!("============================================================");
+    println!("Press Ctrl+C to stop");
+    println!("============================================================\n");
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }
 
-async fn index_handler() -> impl IntoResponse {
+async fn index_handler(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> impl IntoResponse {
+    println!("[{}] GET / - 200 OK", addr);
     Html(HTML_PAGE)
 }
 
 async fn websocket_handler(
     ws: WebSocketUpgrade,
     tx: Arc<broadcast::Sender<String>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(|socket| handle_socket(socket, tx))
+    println!("[{}] WebSocket connection established", addr);
+    ws.on_upgrade(move |socket| handle_socket(socket, tx, addr))
 }
 
-async fn handle_socket(socket: WebSocket, tx: Arc<broadcast::Sender<String>>) {
+async fn handle_socket(socket: WebSocket, tx: Arc<broadcast::Sender<String>>, addr: SocketAddr) {
     let (mut sender, mut receiver) = socket.split();
     let mut rx = tx.subscribe();
 
@@ -277,4 +297,6 @@ async fn handle_socket(socket: WebSocket, tx: Arc<broadcast::Sender<String>>) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+
+    println!("[{}] WebSocket connection closed", addr);
 }
