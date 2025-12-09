@@ -8,11 +8,11 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// IP address of the weather station
+    /// Weather station IP address (e.g., 192.168.1.100)
     #[arg(short, long)]
     pub ip: Option<String>,
 
-    /// Port number (default: 45000)
+    /// Weather station port number (default: 45000)
     #[arg(short, long)]
     pub port: Option<u16>,
 
@@ -74,10 +74,13 @@ impl Args {
             Ok((ip, port))
         } else {
             anyhow::bail!(
-                "Device IP must be specified via:\n\
-                 - Command line: --ip <IP>\n\
+                "Weather station IP must be specified via:\n\
+                 - Command line: --ip <WEATHER_STATION_IP>\n\
                  - Config file: --config <FILE>\n\
-                 - Environment: WXLISTENER_IP=<IP>"
+                 - Environment: WXLISTENER_IP=<WEATHER_STATION_IP>\n\
+                 \n\
+                 Note: This is the IP of your GW1000/Ecowitt device, not the web server.\n\
+                 Web server settings use --web-host and --web-port."
             );
         }
     }
@@ -192,7 +195,7 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Device IP must be specified"));
+            .contains("Weather station IP must be specified"));
     }
 
     #[test]
