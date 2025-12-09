@@ -1,0 +1,8 @@
+# WXListener Configuration File
+# GW1000/Ecowitt Gateway Weather Station
+
+# IP address of your weather station
+ip = "10.31.100.42"
+
+# Port number (default: 45000)
+port = 45000
