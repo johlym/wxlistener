@@ -9,12 +9,12 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 
 ## Features
 
-- ✅ **Standalone binary** - No runtime dependencies, runs anywhere
-- ✅ **Fast & efficient** - Written in Rust for maximum performance
-- ✅ **Config file or CLI args** - Flexible configuration options
-- ✅ **JSON or text output** - Machine-readable or human-friendly
-- ✅ **Continuous monitoring** - Poll at regular intervals
-- ✅ **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
+- **Standalone binary** - No runtime dependencies, runs anywhere
+- **Fast & efficient** - Written in Rust for maximum performance
+- **Config file or CLI args** - Flexible configuration options
+- **JSON or text output** - Machine-readable or human-friendly
+- **Continuous monitoring** - Poll at regular intervals
+- **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
 
 ## TODO
 
@@ -158,7 +158,40 @@ The tool reads and displays:
 
 - Rust 1.82+ (for building from source)
 - Network access to your weather station
-- Weather station must be on the same network or accessible via IP
+
+## Development Setup
+
+If you want to work on this code, there's a setup script that will configure everything:
+
+```bash
+# Clone the repository
+git clone <your-repo>
+cd listener
+
+# Run the setup script
+bin/setup
+```
+
+The setup script will:
+
+- Check for Rust installation (and guide you if missing)
+- Verify Rust version (>= 1.82)
+- Install rustfmt and clippy if needed
+- Fetch all dependencies
+- Build the project
+- Run tests to verify everything works
+- Create an example config file
+- Make scripts executable
+
+After setup, update `wxlistener.toml` with your device's IP address and you're ready to go!
+
+## Testing
+
+Everything is wrapped in a single command:
+
+```sh
+$ bin/test
+```
 
 ## License
 

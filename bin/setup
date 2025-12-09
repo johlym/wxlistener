@@ -1,0 +1,205 @@
+#!/bin/bash
+# Setup script for wxlistener development environment
+
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to print section headers
+print_section() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+echo ""
+echo -e "${BLUE}🚀 wxlistener Development Environment Setup${NC}"
+echo ""
+
+# Check if Rust is installed
+print_section "🦀 Checking Rust installation"
+
+if command -v rustc &> /dev/null; then
+    RUST_VERSION=$(rustc --version | cut -d' ' -f2)
+    print_success "Rust is installed: $RUST_VERSION"
+    
+    # Check if version is recent enough
+    REQUIRED_VERSION="1.82.0"
+    CURRENT_VERSION=$(rustc --version | cut -d' ' -f2)
+    
+    if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$CURRENT_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
+        print_success "Rust version is sufficient (>= $REQUIRED_VERSION)"
+    else
+        print_warning "Rust version $CURRENT_VERSION is older than recommended $REQUIRED_VERSION"
+        echo "  Run: rustup update"
+    fi
+else
+    print_error "Rust is not installed"
+    echo ""
+    echo "To install Rust, run:"
+    echo "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    echo ""
+    echo "Or visit: https://rustup.rs/"
+    exit 1
+fi
+
+echo ""
+
+# Check cargo
+print_section "📦 Checking Cargo"
+
+if command -v cargo &> /dev/null; then
+    CARGO_VERSION=$(cargo --version | cut -d' ' -f2)
+    print_success "Cargo is installed: $CARGO_VERSION"
+else
+    print_error "Cargo is not installed (should come with Rust)"
+    exit 1
+fi
+
+echo ""
+
+# Check for rustfmt
+print_section "🎨 Checking development tools"
+
+if command -v rustfmt &> /dev/null; then
+    print_success "rustfmt is installed"
+else
+    print_warning "rustfmt is not installed"
+    echo "  Installing rustfmt..."
+    rustup component add rustfmt
+    print_success "rustfmt installed"
+fi
+
+if command -v cargo-clippy &> /dev/null || rustup component list | grep -q "clippy.*installed"; then
+    print_success "clippy is installed"
+else
+    print_warning "clippy is not installed"
+    echo "  Installing clippy..."
+    rustup component add clippy
+    print_success "clippy installed"
+fi
+
+echo ""
+
+# Install dependencies
+print_section "📚 Installing dependencies"
+
+echo "Running: cargo fetch"
+cargo fetch
+print_success "Dependencies fetched"
+
+echo ""
+
+# Build the project
+print_section "🏗️  Building project"
+
+echo "Running: cargo build"
+if cargo build; then
+    print_success "Debug build successful"
+else
+    print_error "Build failed"
+    exit 1
+fi
+
+echo ""
+
+# Run tests
+print_section "🧪 Running tests"
+
+echo "Running: cargo test"
+if cargo test --quiet; then
+    print_success "All tests passed"
+else
+    print_error "Tests failed"
+    exit 1
+fi
+
+echo ""
+
+# Create example config
+print_section "⚙️  Setting up configuration"
+
+if [ ! -f "wxlistener.toml" ]; then
+    cat > wxlistener.toml << 'EOF'
+# WXListener Configuration File
+# GW1000/Ecowitt Gateway Weather Station
+
+# IP address of your weather station
+ip = "10.31.100.42"
+
+# Port number (default: 45000)
+port = 45000
+EOF
+    print_success "Created example config: wxlistener.toml"
+    print_warning "Update wxlistener.toml with your device's IP address"
+else
+    print_success "Config file already exists: wxlistener.toml"
+fi
+
+echo ""
+
+# Make scripts executable
+print_section "🔧 Setting up scripts"
+
+if [ -f "bin/test" ]; then
+    chmod +x bin/test
+    print_success "Made bin/test executable"
+fi
+
+if [ -f "bin/setup" ]; then
+    chmod +x bin/setup
+    print_success "Made bin/setup executable"
+fi
+
+echo ""
+
+# Summary
+print_section "✅ Setup Complete!"
+
+echo -e "${GREEN}Your development environment is ready!${NC}"
+echo ""
+echo "Next steps:"
+echo ""
+echo "  1. Update wxlistener.toml with your device IP:"
+echo "     ${BLUE}vim wxlistener.toml${NC}"
+echo ""
+echo "  2. Run the program:"
+echo "     ${BLUE}cargo run -- --config wxlistener.toml${NC}"
+echo ""
+echo "  3. Run tests:"
+echo "     ${BLUE}bin/test${NC}"
+echo ""
+echo "  4. Build release binary:"
+echo "     ${BLUE}cargo build --release${NC}"
+echo ""
+echo "  5. View documentation:"
+echo "     ${BLUE}cat docs/TESTING.md${NC}"
+echo ""
+echo "Useful commands:"
+echo "  ${BLUE}cargo run --${NC}              Run in debug mode"
+echo "  ${BLUE}cargo build --release${NC}     Build optimized binary"
+echo "  ${BLUE}cargo test${NC}                Run all tests"
+echo "  ${BLUE}cargo fmt${NC}                 Format code"
+echo "  ${BLUE}cargo clippy${NC}              Run linter"
+echo "  ${BLUE}bin/test${NC}                  Run full test suite"
+echo ""
+echo -e "${GREEN}Happy coding! 🚀${NC}"
+echo ""
