@@ -45,18 +45,31 @@ sudo cp target/release/wxlistener /usr/local/bin/
 
 ### Docker
 
+**Runs in continuous mode by default** - just set your device IP and go!
+
 ```bash
 # Build the image
 bin/docker-build
 
-# Run with config file
-bin/docker-run single
+# Set your device IP
+export WXLISTENER_IP=10.31.100.42
+
+# Run (continuous mode by default)
+docker run --network host -e WXLISTENER_IP wxlistener:latest
 
 # Or use docker-compose
+cp .env.example .env  # Edit with your IP
 docker-compose up
 ```
 
-See [docs/DOCKER.md](docs/DOCKER.md) for detailed Docker documentation.
+**Environment Variables:**
+
+- `WXLISTENER_IP` - Your weather station IP (required)
+- `WXLISTENER_PORT` - Port (default: 45000)
+- `WXLISTENER_INTERVAL` - Polling interval in seconds (default: 60)
+- `WXLISTENER_FORMAT` - Output format: `text` or `json` (default: text)
+
+See [docs/docker.md](docs/docker.md) for detailed Docker documentation.
 
 ## Usage
 

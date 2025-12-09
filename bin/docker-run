@@ -13,53 +13,65 @@ echo ""
 echo -e "${BLUE}🐳 Running wxlistener in Docker${NC}"
 echo ""
 
-# Check if config file exists
-if [ ! -f "wxlistener.toml" ]; then
-    echo -e "${YELLOW}⚠ Config file not found. Creating example...${NC}"
-    cat > wxlistener.toml << 'EOF'
-# WXListener Configuration File
-ip = "10.31.100.42"
-port = 45000
-EOF
-    echo -e "${GREEN}✓ Created wxlistener.toml${NC}"
-    echo -e "${YELLOW}  Please update with your device's IP address${NC}"
+# Check if .env file exists, if not create from example
+if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+    echo -e "${YELLOW}⚠ .env file not found. Creating from .env.example...${NC}"
+    cp .env.example .env
+    echo -e "${GREEN}✓ Created .env${NC}"
+    echo -e "${YELLOW}  Please update .env with your device's IP address${NC}"
     echo ""
 fi
+
+# Load environment variables if .env exists
+if [ -f ".env" ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
+# Use environment variable or default
+DEVICE_IP="${WXLISTENER_IP:-10.31.100.42}"
+DEVICE_PORT="${WXLISTENER_PORT:-45000}"
+POLL_INTERVAL="${WXLISTENER_INTERVAL:-60}"
+OUTPUT_FORMAT="${WXLISTENER_FORMAT:-text}"
 
 # Parse arguments
 MODE="${1:-single}"
 
 case "$MODE" in
-    single)
-        echo -e "${BLUE}Running single read...${NC}"
-        docker run --rm \
-            --network host \
-            -v "$(pwd)/wxlistener.toml:/home/wxlistener/wxlistener.toml:ro" \
-            wxlistener:latest \
-            --config wxlistener.toml
-        ;;
-    
-    continuous)
-        INTERVAL="${2:-60}"
+    default|continuous)
+        INTERVAL="${2:-$POLL_INTERVAL}"
         echo -e "${BLUE}Running continuous mode (every $INTERVAL seconds)...${NC}"
+        echo -e "${BLUE}Device: $DEVICE_IP:$DEVICE_PORT${NC}"
         echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
         echo ""
         docker run --rm \
             --network host \
-            -v "$(pwd)/wxlistener.toml:/home/wxlistener/wxlistener.toml:ro" \
+            -e WXLISTENER_IP="$DEVICE_IP" \
+            -e WXLISTENER_PORT="$DEVICE_PORT" \
+            -e WXLISTENER_INTERVAL="$INTERVAL" \
+            -e WXLISTENER_FORMAT="$OUTPUT_FORMAT" \
+            wxlistener:latest
+        ;;
+    
+    single)
+        echo -e "${BLUE}Running single read...${NC}"
+        echo -e "${BLUE}Device: $DEVICE_IP:$DEVICE_PORT${NC}"
+        docker run --rm \
+            --network host \
+            -e WXLISTENER_IP="$DEVICE_IP" \
+            -e WXLISTENER_PORT="$DEVICE_PORT" \
             wxlistener:latest \
-            --config wxlistener.toml \
-            --continuous "$INTERVAL"
+            sh -c "wxlistener --ip \$WXLISTENER_IP --port \$WXLISTENER_PORT"
         ;;
     
     json)
         echo -e "${BLUE}Running with JSON output...${NC}"
+        echo -e "${BLUE}Device: $DEVICE_IP:$DEVICE_PORT${NC}"
         docker run --rm \
             --network host \
-            -v "$(pwd)/wxlistener.toml:/home/wxlistener/wxlistener.toml:ro" \
-            wxlistener:latest \
-            --config wxlistener.toml \
-            --format json
+            -e WXLISTENER_IP="$DEVICE_IP" \
+            -e WXLISTENER_PORT="$DEVICE_PORT" \
+            -e WXLISTENER_FORMAT="json" \
+            wxlistener:latest
         ;;
     
     compose)
@@ -67,20 +79,18 @@ case "$MODE" in
         docker-compose up
         ;;
     
-    compose-continuous)
-        echo -e "${BLUE}Starting continuous mode with docker-compose...${NC}"
-        docker-compose --profile continuous up wxlistener-continuous
-        ;;
-    
     *)
-        echo "Usage: $0 [single|continuous|json|compose|compose-continuous] [interval]"
+        echo "Usage: $0 [default|single|json|compose] [interval]"
         echo ""
         echo "Examples:"
+        echo "  $0                     # Default: continuous mode"
+        echo "  $0 default 30          # Continuous, poll every 30 seconds"
         echo "  $0 single              # Single read"
-        echo "  $0 continuous 30       # Poll every 30 seconds"
-        echo "  $0 json                # JSON output"
+        echo "  $0 json                # Continuous with JSON output"
         echo "  $0 compose             # Use docker-compose"
-        echo "  $0 compose-continuous  # Continuous with docker-compose"
+        echo ""
+        echo "Configuration:"
+        echo "  Set WXLISTENER_IP in .env file or environment"
         exit 1
         ;;
 esac

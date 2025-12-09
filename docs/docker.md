@@ -16,28 +16,41 @@ bin/docker-build
 docker build -t wxlistener:latest .
 ```
 
-### 2. Create Config File
+### 2. Configure with Environment Variables
 
 ```bash
-cat > wxlistener.toml << EOF
-ip = "10.31.100.42"
-port = 45000
-EOF
+# Copy example environment file
+cp .env.example .env
+
+# Edit with your device IP
+vim .env
 ```
 
-### 3. Run
+Or set directly:
 
 ```bash
-# Using our script
-bin/docker-run single
+export WXLISTENER_IP=10.31.100.42
+export WXLISTENER_PORT=45000
+export WXLISTENER_INTERVAL=60
+```
 
-# Or manually
+### 3. Run (Continuous Mode by Default)
+
+```bash
+# Using our script (continuous mode by default)
+bin/docker-run
+
+# Or with docker run
 docker run --rm \
   --network host \
-  -v $(pwd)/wxlistener.toml:/home/wxlistener/wxlistener.toml:ro \
-  wxlistener:latest \
-  --config wxlistener.toml
+  -e WXLISTENER_IP=10.31.100.42 \
+  wxlistener:latest
+
+# Or with docker-compose
+docker-compose up
 ```
+
+**The container runs in continuous mode by default** - no additional configuration needed!
 
 ## Docker Images
 
@@ -228,12 +241,70 @@ docker run -p 45000:45000 wxlistener:latest --ip 10.31.100.42
 
 ## Environment Variables
 
-```bash
-# Logging level
-docker run -e RUST_LOG=debug wxlistener:latest ...
+### Configuration Variables
 
-# Timezone
-docker run -e TZ=America/New_York wxlistener:latest ...
+| Variable              | Description                      | Default | Required |
+| --------------------- | -------------------------------- | ------- | -------- |
+| `WXLISTENER_IP`       | Weather station IP address       | -       | ✅ Yes   |
+| `WXLISTENER_PORT`     | Weather station port             | `45000` | No       |
+| `WXLISTENER_INTERVAL` | Polling interval (seconds)       | `60`    | No       |
+| `WXLISTENER_FORMAT`   | Output format (`text` or `json`) | `text`  | No       |
+| `RUST_LOG`            | Logging level                    | `info`  | No       |
+| `TZ`                  | Timezone                         | `UTC`   | No       |
+
+### Usage Examples
+
+```bash
+# Minimal (just IP required)
+docker run -e WXLISTENER_IP=10.31.100.42 wxlistener:latest
+
+# Custom interval (poll every 30 seconds)
+docker run \
+  -e WXLISTENER_IP=10.31.100.42 \
+  -e WXLISTENER_INTERVAL=30 \
+  wxlistener:latest
+
+# JSON output
+docker run \
+  -e WXLISTENER_IP=10.31.100.42 \
+  -e WXLISTENER_FORMAT=json \
+  wxlistener:latest
+
+# Debug logging
+docker run \
+  -e WXLISTENER_IP=10.31.100.42 \
+  -e RUST_LOG=debug \
+  wxlistener:latest
+
+# Custom timezone
+docker run \
+  -e WXLISTENER_IP=10.31.100.42 \
+  -e TZ=America/New_York \
+  wxlistener:latest
+```
+
+### Using .env File
+
+Create a `.env` file:
+
+```bash
+WXLISTENER_IP=10.31.100.42
+WXLISTENER_PORT=45000
+WXLISTENER_INTERVAL=60
+WXLISTENER_FORMAT=text
+RUST_LOG=info
+```
+
+Use with docker-compose:
+
+```bash
+docker-compose up
+```
+
+Or with docker run:
+
+```bash
+docker run --env-file .env wxlistener:latest
 ```
 
 ## Multi-Architecture Builds

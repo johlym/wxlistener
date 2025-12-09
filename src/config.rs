@@ -41,8 +41,9 @@ fn default_port() -> u16 {
 }
 
 impl Args {
-    /// Get IP and port from either command line args or config file
+    /// Get IP and port from either command line args, config file, or environment variables
     pub fn get_connection_info(&self) -> Result<(String, u16)> {
+        // Priority: CLI args > config file > environment variables
         if let Some(config_path) = &self.config {
             let config_str = fs::read_to_string(config_path)
                 .context(format!("Failed to read config file: {:?}", config_path))?;
@@ -52,8 +53,20 @@ impl Args {
         } else if let Some(ip) = &self.ip {
             let port = self.port.unwrap_or(45000);
             Ok((ip.clone(), port))
+        } else if let Ok(ip) = std::env::var("WXLISTENER_IP") {
+            // Try environment variables
+            let port = std::env::var("WXLISTENER_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(45000);
+            Ok((ip, port))
         } else {
-            anyhow::bail!("Either --ip or --config must be specified");
+            anyhow::bail!(
+                "Device IP must be specified via:\n\
+                 - Command line: --ip <IP>\n\
+                 - Config file: --config <FILE>\n\
+                 - Environment: WXLISTENER_IP=<IP>"
+            );
         }
     }
 }
@@ -134,6 +147,10 @@ mod tests {
 
     #[test]
     fn test_get_connection_info_no_args() {
+        // Clean up any environment variables first
+        std::env::remove_var("WXLISTENER_IP");
+        std::env::remove_var("WXLISTENER_PORT");
+
         let args = Args {
             ip: None,
             port: None,
@@ -147,7 +164,7 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Either --ip or --config must be specified"));
+            .contains("Device IP must be specified"));
     }
 
     #[test]
@@ -215,5 +232,80 @@ mod tests {
         let config: Config = toml::from_str(toml_str).unwrap();
         assert_eq!(config.ip, "10.31.100.42");
         assert_eq!(config.port, 45000); // Default
+    }
+
+    #[test]
+    fn test_get_connection_info_from_env() {
+        // Clean up first to ensure clean state
+        std::env::remove_var("WXLISTENER_IP");
+        std::env::remove_var("WXLISTENER_PORT");
+        
+        // Set environment variables
+        std::env::set_var("WXLISTENER_IP", "192.168.1.50");
+        std::env::set_var("WXLISTENER_PORT", "12345");
+
+        let args = Args {
+            ip: None,
+            port: None,
+            config: None,
+            format: "text".to_string(),
+            continuous: None,
+        };
+
+        let (ip, port) = args.get_connection_info().unwrap();
+        assert_eq!(ip, "192.168.1.50");
+        assert_eq!(port, 12345);
+
+        // Clean up
+        std::env::remove_var("WXLISTENER_IP");
+        std::env::remove_var("WXLISTENER_PORT");
+    }
+
+    #[test]
+    fn test_get_connection_info_from_env_default_port() {
+        // Clean up first to ensure clean state
+        std::env::remove_var("WXLISTENER_IP");
+        std::env::remove_var("WXLISTENER_PORT");
+        
+        // Set only IP
+        std::env::set_var("WXLISTENER_IP", "10.0.0.5");
+
+        let args = Args {
+            ip: None,
+            port: None,
+            config: None,
+            format: "text".to_string(),
+            continuous: None,
+        };
+
+        let (ip, port) = args.get_connection_info().unwrap();
+        assert_eq!(ip, "10.0.0.5");
+        assert_eq!(port, 45000); // Default
+
+        // Clean up
+        std::env::remove_var("WXLISTENER_IP");
+        std::env::remove_var("WXLISTENER_PORT");
+    }
+
+    #[test]
+    fn test_priority_cli_over_env() {
+        // Set environment variable
+        std::env::set_var("WXLISTENER_IP", "192.168.1.1");
+
+        // CLI args should take priority
+        let args = Args {
+            ip: Some("10.10.10.10".to_string()),
+            port: Some(9999),
+            config: None,
+            format: "text".to_string(),
+            continuous: None,
+        };
+
+        let (ip, port) = args.get_connection_info().unwrap();
+        assert_eq!(ip, "10.10.10.10"); // CLI value, not env
+        assert_eq!(port, 9999);
+
+        // Clean up
+        std::env::remove_var("WXLISTENER_IP");
     }
 }
