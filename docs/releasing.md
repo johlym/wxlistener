@@ -8,12 +8,24 @@ When you push a commit to the `main` branch that changes the `version` field in 
 
 1. Detects the version change
 2. Creates a new Git tag (e.g., `v0.1.2`)
-3. Creates a GitHub release with that tag
-4. Builds binaries for multiple platforms:
+3. Generates release notes from all commits since the last tag
+4. Creates a GitHub release with that tag and the generated notes
+5. Builds binaries for multiple platforms:
    - Linux (x86_64, ARM64)
    - macOS (Intel x86_64, Apple Silicon ARM64)
    - Windows (x86_64)
-5. Uploads the compiled binaries as release assets
+6. Uploads the compiled binaries as release assets
+
+## Release Notes
+
+The release notes are automatically generated and include:
+
+- **What's Changed**: All commit messages since the last release tag
+- **Installation**: Instructions for downloading and using the binaries
+- **Available Platforms**: List of all platform-specific binaries
+- **Full Changelog**: Link to the detailed CHANGELOG.md file
+
+Each commit message will appear as a bullet point in the release notes with its short hash.
 
 ## Creating a New Release
 

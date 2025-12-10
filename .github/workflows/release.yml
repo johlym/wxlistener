@@ -45,6 +45,56 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: previoustag
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | head -1)
+          if [ -z "$PREV_TAG" ]; then
+            echo "previous_tag=" >> $GITHUB_OUTPUT
+          else
+            echo "previous_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          fi
+          echo "Previous tag: $PREV_TAG"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          PREV_TAG="${{ steps.previoustag.outputs.previous_tag }}"
+
+          # Start building release notes
+          echo "## What's Changed" > release_notes.md
+          echo "" >> release_notes.md
+
+          # Get commits since last tag
+          if [ -n "$PREV_TAG" ]; then
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> release_notes.md
+          else
+            git log --pretty=format:"- %s (%h)" --no-merges >> release_notes.md
+          fi
+
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Download the appropriate binary for your platform below and extract it." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Available Platforms" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **Linux x86_64**: `wxlistener-linux-x86_64.tar.gz`" >> release_notes.md
+          echo "- **Linux ARM64**: `wxlistener-linux-aarch64.tar.gz`" >> release_notes.md
+          echo "- **macOS Intel**: `wxlistener-macos-x86_64.tar.gz`" >> release_notes.md
+          echo "- **macOS Apple Silicon**: `wxlistener-macos-aarch64.tar.gz`" >> release_notes.md
+          echo "- **Windows x86_64**: `wxlistener-windows-x86_64.exe.zip`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md" >> release_notes.md
+
+          cat release_notes.md
 
       - name: Create Release
         id: create_release
@@ -54,16 +104,7 @@ jobs:
         with:
           tag_name: v${{ needs.check-version.outputs.version }}
           release_name: Release v${{ needs.check-version.outputs.version }}
-          body: |
-            Release version ${{ needs.check-version.outputs.version }}
-
-            ## Installation
-
-            Download the appropriate binary for your platform below and extract it.
-
-            ## What's Changed
-
-            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          body_path: release_notes.md
           draft: false
           prerelease: false
 
