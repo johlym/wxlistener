@@ -98,24 +98,153 @@ The tool will:
 
 ### Manual Table Creation
 
-To create the database table without starting the listener, use the `--db-create-table` flag:
+There are three ways to create the database table:
+
+#### Option 1: Using the --db-create-table flag
 
 ```bash
 wxlistener --config wxlistener.toml --db-create-table
 ```
 
-This will:
+This will connect to the configured database, create the table, and exit immediately.
 
-- Connect to the configured database
-- Create the table with the appropriate schema
-- Exit immediately
+#### Option 2: Using SQL scripts directly
 
-This is useful for:
+Pre-made SQL scripts are available in `docs/sql-examples/`:
+
+**PostgreSQL:**
+
+```bash
+# Using psql
+psql -U postgres -d weather -f docs/sql-examples/postgres.sql
+
+# Or interactively
+psql -U postgres -d weather
+\i docs/sql-examples/postgres.sql
+```
+
+**MySQL:**
+
+```bash
+# Using mysql client
+mysql -u root -p weather < docs/sql-examples/mysql.sql
+
+# Or interactively
+mysql -u root -p weather
+source docs/sql-examples/mysql.sql
+```
+
+#### Option 3: Manual SQL execution
+
+**PostgreSQL:**
+
+```sql
+CREATE TABLE IF NOT EXISTS wx_records (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    intemp DOUBLE PRECISION,
+    outtemp DOUBLE PRECISION,
+    inhumid DOUBLE PRECISION,
+    outhumid DOUBLE PRECISION,
+    absbarometer DOUBLE PRECISION,
+    relbarometer DOUBLE PRECISION,
+    wind_dir DOUBLE PRECISION,
+    wind_speed DOUBLE PRECISION,
+    gust_speed DOUBLE PRECISION,
+    rain_event DOUBLE PRECISION,
+    rain_rate DOUBLE PRECISION,
+    rain_day DOUBLE PRECISION,
+    rain_week DOUBLE PRECISION,
+    rain_month DOUBLE PRECISION,
+    rain_year DOUBLE PRECISION,
+    light DOUBLE PRECISION,
+    uv DOUBLE PRECISION,
+    uvi DOUBLE PRECISION,
+    day_max_wind DOUBLE PRECISION
+);
+
+-- Create an index on timestamp for faster queries
+CREATE INDEX IF NOT EXISTS idx_wx_records_timestamp ON wx_records(timestamp DESC);
+```
+
+**MySQL:**
+
+```sql
+CREATE TABLE IF NOT EXISTS wx_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp TIMESTAMP NOT NULL,
+    intemp DOUBLE,
+    outtemp DOUBLE,
+    inhumid DOUBLE,
+    outhumid DOUBLE,
+    absbarometer DOUBLE,
+    relbarometer DOUBLE,
+    wind_dir DOUBLE,
+    wind_speed DOUBLE,
+    gust_speed DOUBLE,
+    rain_event DOUBLE,
+    rain_rate DOUBLE,
+    rain_day DOUBLE,
+    rain_week DOUBLE,
+    rain_month DOUBLE,
+    rain_year DOUBLE,
+    light DOUBLE,
+    uv DOUBLE,
+    uvi DOUBLE,
+    day_max_wind DOUBLE,
+    INDEX idx_timestamp (timestamp DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+Manual table creation is useful for:
 
 - Pre-creating tables with specific permissions
 - Verifying database connectivity
 - Setting up the schema before running the listener
 - Non-interactive environments (scripts, Docker, etc.)
+- Custom table modifications or additional indexes
+
+### Creating a Database User
+
+For security, create a dedicated database user for wxlistener with minimal permissions:
+
+**PostgreSQL:**
+
+```sql
+-- Create user
+CREATE USER wxlistener WITH PASSWORD 'your_secure_password';
+
+-- Grant database connection
+GRANT CONNECT ON DATABASE weather TO wxlistener;
+
+-- Grant table permissions
+GRANT SELECT, INSERT ON wx_records TO wxlistener;
+
+-- Grant sequence permissions (for auto-increment)
+GRANT USAGE, SELECT ON SEQUENCE wx_records_id_seq TO wxlistener;
+```
+
+**MySQL:**
+
+```sql
+-- Create user
+CREATE USER 'wxlistener'@'localhost' IDENTIFIED BY 'your_secure_password';
+
+-- Grant table permissions
+GRANT SELECT, INSERT ON weather.wx_records TO 'wxlistener'@'localhost';
+
+-- Apply changes
+FLUSH PRIVILEGES;
+```
+
+Then update your configuration to use this user:
+
+```toml
+[database]
+connection_string = "postgres://wxlistener:your_secure_password@localhost:5432/weather"
+# or for MySQL:
+# connection_string = "mysql://wxlistener:your_secure_password@localhost:3306/weather"
+```
 
 ## Example Queries
 
