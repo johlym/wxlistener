@@ -8,7 +8,13 @@ use crate::database::DatabaseConfig;
 
 /// GW1000/Ecowitt Gateway Weather Station Listener
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about,
+    long_about = "A fast, standalone command-line tool to read live data from GW1000/GW2000/Ecowitt Gateway weather stations.\n\n\
+                  Supports continuous monitoring, web interface, JSON/text output, and database logging to PostgreSQL or MySQL."
+)]
 pub struct Args {
     /// Weather station IP address (e.g., 192.168.1.100)
     #[arg(short, long)]
@@ -42,7 +48,7 @@ pub struct Args {
     #[arg(long, default_value = "18888")]
     pub web_port: u16,
 
-    /// Create database table and exit
+    /// Create database table and exit (requires database config in config file)
     #[arg(long)]
     pub db_create_table: bool,
 }

@@ -37,7 +37,14 @@ async fn main() -> Result<()> {
     }
 
     // Get connection info from args or config
-    let (ip, port) = args.get_connection_info()?;
+    let (ip, port) = match args.get_connection_info() {
+        Ok(info) => info,
+        Err(_) => {
+            // Print help and exit if required arguments are missing
+            Args::parse_from(&["wxlistener", "--help"]);
+            unreachable!()
+        }
+    };
 
     // Check if web mode is enabled
     if args.web {
