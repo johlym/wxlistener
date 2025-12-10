@@ -122,7 +122,10 @@ impl DatabaseWriter {
 
         // Check if table exists, prompt to create if not
         if !writer.table_exists().await? {
-            println!("Table '{}' does not exist in the database.", writer.table_name);
+            println!(
+                "Table '{}' does not exist in the database.",
+                writer.table_name
+            );
             print!("Would you like to create it now? (Y/n): ");
             io::stdout().flush()?;
 

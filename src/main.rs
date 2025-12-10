@@ -23,11 +23,12 @@ async fn main() -> Result<()> {
 
     // Handle database table creation mode
     if args.db_create_table {
-        let db_config = args.get_database_config()?
-            .ok_or_else(|| anyhow::anyhow!(
+        let db_config = args.get_database_config()?.ok_or_else(|| {
+            anyhow::anyhow!(
                 "Database configuration required. Add [database] section to config file."
-            ))?;
-        
+            )
+        })?;
+
         println!("Creating database table...");
         let writer = DatabaseWriter::new(&db_config).await?;
         writer.create_table().await?;
