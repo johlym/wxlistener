@@ -9,6 +9,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 
 ## Table of Contents
 
+- [Topic-specific Documentation](#topic-specific-documentation)
 - [Features](#features)
 - [TODO](#todo)
 - [Installation](#installation)
