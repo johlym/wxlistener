@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get current version
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Check if version changed
+        id: check
+        run: |
+          git diff HEAD^ HEAD -- Cargo.toml > diff.txt
+          if grep -q '^+version = ' diff.txt; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed detected"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No version change detected"
+          fi
+
+  create-release:
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          release_name: Release v${{ needs.check-version.outputs.version }}
+          body: |
+            Release version ${{ needs.check-version.outputs.version }}
+
+            ## Installation
+
+            Download the appropriate binary for your platform below and extract it.
+
+            ## What's Changed
+
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+
+  build:
+    needs: [check-version, create-release]
+    if: needs.check-version.outputs.version_changed == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: wxlistener
+            asset_name: wxlistener-linux-x86_64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: wxlistener
+            asset_name: wxlistener-linux-aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: wxlistener
+            asset_name: wxlistener-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: wxlistener
+            asset_name: wxlistener-macos-aarch64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: wxlistener.exe
+            asset_name: wxlistener-windows-x86_64.exe
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create archive (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          mv ${{ matrix.asset_name }}.tar.gz ../../../
+
+      - name: Create archive (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          move ${{ matrix.asset_name }}.zip ../../../
+
+      - name: Upload Release Asset (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.tar.gz
+          asset_name: ${{ matrix.asset_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}.zip
+          asset_name: ${{ matrix.asset_name }}.zip
+          asset_content_type: application/zip

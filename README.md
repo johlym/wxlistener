@@ -28,7 +28,13 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 
 ### Pre-built Binary
 
-Download the compiled `wxlistener` binary from the releases page (coming soon) or build from source.
+Download the latest compiled `wxlistener` binary from the [releases page](https://github.com/johlym/wxlistener/releases) for your platform:
+
+- **Linux** (x86_64, ARM64)
+- **macOS** (Intel, Apple Silicon)
+- **Windows** (x86_64)
+
+Extract the archive and optionally move the binary to your PATH.
 
 ### Build from Source
 
