@@ -181,17 +181,17 @@ database = "weather"
 table_name = "wx_records"  # optional; this is the default table name
 ```
 
-The database table will be created automatically with columns matching the weather data fields. The `heap_free` field is excluded from database storage. Each weather reading is stored as a new row with a timestamp.
+When you run wxlistener with database configuration, it will check if the table exists. If not, it will prompt you to create it interactively. The `heap_free` field is excluded from database storage. Each weather reading is stored as a new row with a timestamp.
 
-**Create Table Manually**
+**Create Table Non-Interactively**
 
-To create the database table without starting the listener:
+To create the database table without starting the listener or being prompted:
 
 ```bash
 wxlistener --config wxlistener.toml --db-create-table
 ```
 
-This will connect to the database, create the table (if it doesn't exist), and exit.
+This will connect to the database, create the table (if it doesn't exist), and exit. This is useful for scripts and automated deployments.
 
 ## Output Example
 

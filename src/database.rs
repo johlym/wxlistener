@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use sqlx::{MySqlPool, PgPool};
 use std::collections::HashMap;
+use std::io::{self, Write};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
@@ -114,10 +115,65 @@ impl DatabaseWriter {
             anyhow::bail!("Unsupported database type. Use postgres:// or mysql://");
         };
 
-        Ok(Self {
+        let writer = Self {
             pool,
             table_name: config.table_name.clone(),
-        })
+        };
+
+        // Check if table exists, prompt to create if not
+        if !writer.table_exists().await? {
+            println!("Table '{}' does not exist in the database.", writer.table_name);
+            print!("Would you like to create it now? (Y/n): ");
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim().to_lowercase();
+
+            if input.is_empty() || input == "y" || input == "yes" {
+                println!("Creating table '{}'...", writer.table_name);
+                writer.create_table().await?;
+                println!("✓ Table '{}' created successfully", writer.table_name);
+            } else {
+                anyhow::bail!(
+                    "Table '{}' does not exist. Cannot proceed without it. \
+                    Run with --db-create-table to create it non-interactively.",
+                    writer.table_name
+                );
+            }
+        }
+
+        Ok(writer)
+    }
+
+    /// Check if the table exists in the database
+    async fn table_exists(&self) -> Result<bool> {
+        let exists = match &self.pool {
+            DatabasePool::Postgres(pool) => {
+                let query = "SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = $1
+                )";
+                let row: (bool,) = sqlx::query_as(query)
+                    .bind(&self.table_name)
+                    .fetch_one(pool)
+                    .await
+                    .context("Failed to check if table exists")?;
+                row.0
+            }
+            DatabasePool::MySql(pool) => {
+                let query = "SELECT COUNT(*) > 0 FROM information_schema.tables 
+                    WHERE table_name = ? AND table_schema = DATABASE()";
+                let row: (i64,) = sqlx::query_as(query)
+                    .bind(&self.table_name)
+                    .fetch_one(pool)
+                    .await
+                    .context("Failed to check if table exists")?;
+                row.0 > 0
+            }
+        };
+
+        Ok(exists)
     }
 
     /// Create the weather data table if it doesn't exist

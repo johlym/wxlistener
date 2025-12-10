@@ -54,17 +54,11 @@ async fn main() -> Result<()> {
     let db_writer = if let Some(db_config) = args.get_database_config()? {
         match DatabaseWriter::new(&db_config).await {
             Ok(writer) => {
-                println!("✓ Connected to database");
-                if let Err(e) = writer.create_table().await {
-                    eprintln!("✗ Failed to create database table: {}", e);
-                    None
-                } else {
-                    println!("✓ Database table ready");
-                    Some(writer)
-                }
+                println!("✓ Connected to database and table verified");
+                Some(writer)
             }
             Err(e) => {
-                eprintln!("✗ Failed to connect to database: {}", e);
+                eprintln!("✗ Database error: {}", e);
                 eprintln!("  Continuing without database support");
                 None
             }

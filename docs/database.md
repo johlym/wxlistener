@@ -91,7 +91,8 @@ The table is created automatically with the following columns:
 The tool will:
 
 - Connect to the database
-- Create the table if it doesn't exist (unless already created)
+- Check if the table exists
+- If the table doesn't exist, prompt you to create it (Y/n)
 - Start collecting and storing weather data
 - Continue running even if database writes fail (errors are logged)
 
@@ -114,6 +115,7 @@ This is useful for:
 - Pre-creating tables with specific permissions
 - Verifying database connectivity
 - Setting up the schema before running the listener
+- Non-interactive environments (scripts, Docker, etc.)
 
 ## Example Queries
 
