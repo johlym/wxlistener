@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 
+use crate::database::DatabaseConfig;
+
 /// GW1000/Ecowitt Gateway Weather Station Listener
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -46,6 +48,8 @@ pub struct Config {
     pub ip: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub database: Option<DatabaseConfig>,
 }
 
 fn default_port() -> u16 {
@@ -82,6 +86,19 @@ impl Args {
                  Note: This is the IP of your GW1000/Ecowitt device, not the web server.\n\
                  Web server settings use --web-host and --web-port."
             );
+        }
+    }
+
+    /// Get database configuration from config file if present
+    pub fn get_database_config(&self) -> Result<Option<DatabaseConfig>> {
+        if let Some(config_path) = &self.config {
+            let config_str = fs::read_to_string(config_path)
+                .context(format!("Failed to read config file: {:?}", config_path))?;
+            let config: Config =
+                toml::from_str(&config_str).context("Failed to parse config file")?;
+            Ok(config.database)
+        } else {
+            Ok(None)
         }
     }
 }

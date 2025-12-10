@@ -15,6 +15,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **JSON or text output** - Machine-readable or human-friendly
 - **Continuous monitoring** - Poll at regular intervals (default: 5 seconds)
 - **Web interface** - Real-time browser dashboard with WebSocket updates
+- **Database support** - Store data in PostgreSQL or MySQL databases
 - **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
 - **Docker support** - Run in containers for easy deployment
 
@@ -129,6 +130,22 @@ Create a `wxlistener.toml` file:
 # WXListener Configuration File
 ip = "10.31.100.42"
 port = 45000
+
+# Optional: Database configuration
+[database]
+# Option 1: Use a connection string
+connection_string = "postgres://username:password@localhost:5432/weather"
+
+# Option 2: Use individual fields (if connection_string is not provided)
+# db_type = "postgres"  # or "mysql"
+# host = "localhost"
+# port = 5432           # 5432 for postgres, 3306 for mysql
+# username = "myuser"
+# password = "mypass"
+# database = "weather"
+
+# Table name (optional, defaults to "weather_data")
+table_name = "weather_data"
 ```
 
 Then run:
@@ -136,6 +153,35 @@ Then run:
 ```bash
 wxlistener --config wxlistener.toml
 ```
+
+#### Database Configuration
+
+The tool supports both PostgreSQL and MySQL databases. You can configure the database in two ways:
+
+**Option 1: Connection String**
+
+```toml
+[database]
+connection_string = "postgres://user:pass@localhost:5432/weather"
+# or
+connection_string = "mysql://user:pass@localhost:3306/weather"
+table_name = "weather_data"  # optional
+```
+
+**Option 2: Individual Fields**
+
+```toml
+[database]
+db_type = "postgres"  # or "mysql"
+host = "localhost"
+port = 5432           # optional, defaults: postgres=5432, mysql=3306
+username = "myuser"
+password = "mypass"
+database = "weather"
+table_name = "weather_data"  # optional
+```
+
+The database table will be created automatically with columns matching the weather data fields. The `heap_free` field is excluded from database storage. Each weather reading is stored as a new row with a timestamp.
 
 ## Output Example
 

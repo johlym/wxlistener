@@ -1,5 +1,6 @@
 mod client;
 mod config;
+mod database;
 mod decoder;
 mod output;
 mod protocol;
@@ -12,6 +13,7 @@ use std::time::Duration;
 
 use client::GW1000Client;
 use config::Args;
+use database::DatabaseWriter;
 use output::print_livedata;
 use web::{run_web_server, WebServerConfig};
 
@@ -33,6 +35,29 @@ async fn main() -> Result<()> {
     }
 
     let client = GW1000Client::new(ip.clone(), port);
+
+    // Initialize database writer if configured
+    let db_writer = if let Some(db_config) = args.get_database_config()? {
+        match DatabaseWriter::new(&db_config).await {
+            Ok(writer) => {
+                println!("✓ Connected to database");
+                if let Err(e) = writer.create_table().await {
+                    eprintln!("✗ Failed to create database table: {}", e);
+                    None
+                } else {
+                    println!("✓ Database table ready");
+                    Some(writer)
+                }
+            }
+            Err(e) => {
+                eprintln!("✗ Failed to connect to database: {}", e);
+                eprintln!("  Continuing without database support");
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     println!("============================================================");
     println!("GW1000/Ecowitt Gateway Weather Station Listener");
@@ -57,12 +82,24 @@ async fn main() -> Result<()> {
         "\n--- Continuous Mode (every {} seconds) ---",
         args.continuous
     );
+    if db_writer.is_some() {
+        println!("Database logging: ENABLED");
+    }
     println!("Press Ctrl+C to stop\n");
 
     loop {
         match client.get_livedata() {
             Ok(data) => {
                 let timestamp = Utc::now();
+
+                // Write to database if configured
+                if let Some(ref writer) = db_writer {
+                    if let Err(e) = writer.insert_data(&data, &timestamp).await {
+                        eprintln!("Database write error: {}", e);
+                    }
+                }
+
+                // Display output
                 if args.format == "json" {
                     println!("{}", serde_json::to_string_pretty(&data)?);
                 } else {

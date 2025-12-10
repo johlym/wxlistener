@@ -6,3 +6,21 @@ ip = "10.31.100.42"
 
 # Port number (default: 45000)
 port = 45000
+
+# Optional: Database configuration
+# Uncomment and configure to enable database logging
+# [database]
+# Option 1: Use a connection string
+# connection_string = "postgres://username:password@localhost:5432/weather"
+# connection_string = "mysql://username:password@localhost:3306/weather"
+
+# Option 2: Use individual fields
+# db_type = "postgres"  # or "mysql"
+# host = "localhost"
+# port = 5432           # optional, defaults: postgres=5432, mysql=3306
+# username = "myuser"
+# password = "mypass"
+# database = "weather"
+
+# Table name (optional, defaults to "weather_data")
+# table_name = "weather_data"
