@@ -2,6 +2,19 @@
 
 This project uses automated releases via GitHub Actions.
 
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Release Notes](#release-notes)
+- [Creating a New Release](#creating-a-new-release)
+- [Release Artifacts](#release-artifacts)
+- [Versioning](#versioning)
+- [Manual Release (if needed)](#manual-release-if-needed)
+- [Troubleshooting](#troubleshooting)
+  - [Release workflow didn't trigger](#release-workflow-didnt-trigger)
+  - [Build failed for a specific platform](#build-failed-for-a-specific-platform)
+  - [Release was created but binaries are missing](#release-was-created-but-binaries-are-missing)
+
 ## How It Works
 
 The release workflow runs on every push to the `main` branch. When the `version` field in `Cargo.toml` has changed, it automatically:

@@ -1,5 +1,41 @@
 # Fuzzing Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Setup](#setup)
+  - [Install cargo-fuzz](#install-cargo-fuzz)
+  - [Verify Installation](#verify-installation)
+- [Fuzz Targets](#fuzz-targets)
+  - [1. `fuzz_decoder` - Binary Data Decoders](#1-fuzz_decoder---binary-data-decoders)
+  - [2. `fuzz_protocol` - Protocol Functions](#2-fuzz_protocol---protocol-functions)
+- [Running Fuzz Tests](#running-fuzz-tests)
+  - [Quick Fuzz (10 seconds)](#quick-fuzz-10-seconds)
+  - [Extended Fuzz (1 minute)](#extended-fuzz-1-minute)
+  - [Continuous Fuzzing](#continuous-fuzzing)
+  - [Parallel Fuzzing](#parallel-fuzzing)
+- [Understanding Output](#understanding-output)
+  - [Successful Run](#successful-run)
+  - [Crash Found](#crash-found)
+- [Reproducing Crashes](#reproducing-crashes)
+- [Corpus Management](#corpus-management)
+  - [View Corpus](#view-corpus)
+  - [Add Seed Inputs](#add-seed-inputs)
+  - [Minimize Corpus](#minimize-corpus)
+- [Coverage Analysis](#coverage-analysis)
+  - [Generate Coverage Report](#generate-coverage-report)
+- [Best Practices](#best-practices)
+- [Integration with CI](#integration-with-ci)
+  - [GitHub Actions Example](#github-actions-example)
+- [Troubleshooting](#troubleshooting)
+  - ["No fuzz targets found"](#no-fuzz-targets-found)
+  - ["Sanitizer not supported"](#sanitizer-not-supported)
+  - [Out of Memory](#out-of-memory)
+- [Advanced Options](#advanced-options)
+  - [Dictionary-Based Fuzzing](#dictionary-based-fuzzing)
+  - [Structured Fuzzing](#structured-fuzzing)
+- [Resources](#resources)
+
 ## Overview
 
 Fuzzing is a testing technique that provides random/malformed input to find bugs, crashes, and security vulnerabilities. We use `cargo-fuzz` (libFuzzer) to fuzz test our binary parsing code.

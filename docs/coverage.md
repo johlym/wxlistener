@@ -1,5 +1,45 @@
 # Test Coverage Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Current Coverage](#current-coverage)
+  - [By Module](#by-module)
+- [Quick Start](#quick-start)
+  - [Install Coverage Tool](#install-coverage-tool)
+  - [Generate Coverage Report](#generate-coverage-report)
+  - [View Report](#view-report)
+- [Understanding Coverage Metrics](#understanding-coverage-metrics)
+  - [Lines Coverage](#lines-coverage)
+  - [Regions Coverage](#regions-coverage)
+  - [Functions Coverage](#functions-coverage)
+- [Improving Coverage](#improving-coverage)
+  - [Priority Areas](#priority-areas)
+  - [Example: Adding Config Tests](#example-adding-config-tests)
+- [Coverage Targets](#coverage-targets)
+  - [Current Status](#current-status)
+  - [Goals](#goals)
+- [Advanced Usage](#advanced-usage)
+  - [Generate Different Formats](#generate-different-formats)
+  - [Exclude Files from Coverage](#exclude-files-from-coverage)
+  - [Coverage for Specific Tests](#coverage-for-specific-tests)
+- [CI Integration](#ci-integration)
+  - [GitHub Actions](#github-actions)
+  - [Coverage Badges](#coverage-badges)
+- [Interpreting Results](#interpreting-results)
+  - [Good Coverage (>80%)](#good-coverage-80)
+  - [Moderate Coverage (50-80%)](#moderate-coverage-50-80)
+  - [Low Coverage (<50%)](#low-coverage-50)
+- [Coverage vs. Test Quality](#coverage-vs-test-quality)
+  - [Bad Test (100% coverage, poor quality)](#bad-test-100-coverage-poor-quality)
+  - [Good Test (100% coverage, high quality)](#good-test-100-coverage-high-quality)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+  - ["No coverage data generated"](#no-coverage-data-generated)
+  - ["Coverage decreased"](#coverage-decreased)
+  - [High variance in coverage](#high-variance-in-coverage)
+- [Resources](#resources)
+
 ## Overview
 
 Test coverage measures how much of your code is executed during tests. We use `cargo-llvm-cov` for comprehensive coverage reporting.

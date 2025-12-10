@@ -2,6 +2,30 @@
 
 wxlistener now supports storing weather data in PostgreSQL or MySQL databases. Each weather reading is automatically stored as a new row with a timestamp.
 
+## Table of Contents
+
+- [Features](#features)
+- [Configuration](#configuration)
+  - [Option 1: Connection String](#option-1-connection-string)
+  - [Option 2: Individual Fields](#option-2-individual-fields)
+- [Database Schema](#database-schema)
+- [Usage](#usage)
+  - [Manual Table Creation](#manual-table-creation)
+    - [Option 1: Using the --db-create-table flag](#option-1-using-the---db-create-table-flag)
+    - [Option 2: Using SQL scripts directly](#option-2-using-sql-scripts-directly)
+    - [Option 3: Manual SQL execution](#option-3-manual-sql-execution)
+  - [Creating a Database User](#creating-a-database-user)
+- [Example Queries](#example-queries)
+  - [Get latest reading](#get-latest-reading)
+  - [Get average temperature for today](#get-average-temperature-for-today)
+  - [Get hourly rainfall](#get-hourly-rainfall)
+- [Troubleshooting](#troubleshooting)
+  - [Connection fails](#connection-fails)
+  - [Table creation fails](#table-creation-fails)
+  - [Data not being inserted](#data-not-being-inserted)
+- [Performance](#performance)
+- [Security Notes](#security-notes)
+
 ## Features
 
 - **Automatic table creation** - The weather data table is created automatically on first run

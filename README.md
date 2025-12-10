@@ -7,6 +7,42 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 >
 > Do with that information what you will.
 
+## Table of Contents
+
+- [Features](#features)
+- [TODO](#todo)
+- [Installation](#installation)
+  - [Pre-built Binary](#pre-built-binary)
+  - [Build from Source](#build-from-source)
+  - [Docker](#docker)
+- [Usage](#usage)
+  - [Command Line Arguments](#command-line-arguments)
+  - [Web Interface](#web-interface)
+  - [Configuration File](#configuration-file)
+    - [Database Configuration](#database-configuration)
+- [Output Example](#output-example)
+  - [Text Format (default)](#text-format-default)
+  - [JSON Format](#json-format)
+- [Supported Devices](#supported-devices)
+  - [Alleged Support](#alleged-support)
+- [Data Fields](#data-fields)
+- [Requirements](#requirements)
+- [Development Setup](#development-setup)
+- [Testing](#testing)
+- [License](#license)
+- [Credits](#credits)
+
+## Topic-specific Documentation
+
+- [Architecture](docs/architecture.md)
+- [Benchmarking](docs/benchmarking.md)
+- [Database (structure and storage)](docs/database.md)
+- [Docker support](docs/docker.md)
+- [Fuzzing](docs/fuzzing.md)
+- [Releasing](docs/releasing.md)
+- [Testing](docs/testing.md)
+  - [Coverage (testing)](docs/coverage.md)
+
 ## Features
 
 - **Standalone binary** - No runtime dependencies, runs anywhere

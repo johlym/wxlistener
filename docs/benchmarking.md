@@ -1,5 +1,45 @@
 # Benchmarking Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Running Benchmarks](#running-benchmarks)
+  - [Run All Benchmarks](#run-all-benchmarks)
+  - [Run Specific Benchmark Suite](#run-specific-benchmark-suite)
+  - [Run Specific Benchmark](#run-specific-benchmark)
+- [Benchmark Suites](#benchmark-suites)
+  - [1. Decoder Benchmarks (`decoder_bench`)](#1-decoder-benchmarks-decoder_bench)
+  - [2. Protocol Benchmarks (`protocol_bench`)](#2-protocol-benchmarks-protocol_bench)
+- [Understanding Output](#understanding-output)
+  - [Sample Output](#sample-output)
+  - [Performance Status](#performance-status)
+- [Viewing Results](#viewing-results)
+  - [HTML Reports](#html-reports)
+  - [Command Line Summary](#command-line-summary)
+- [Comparing Performance](#comparing-performance)
+  - [Baseline Comparison](#baseline-comparison)
+  - [Between Branches](#between-branches)
+- [Performance Targets](#performance-targets)
+  - [Current Performance (Approximate)](#current-performance-approximate)
+  - [Regression Threshold](#regression-threshold)
+- [Optimization Tips](#optimization-tips)
+  - [1. Profile Before Optimizing](#1-profile-before-optimizing)
+  - [2. Check Assembly](#2-check-assembly)
+  - [3. Use Release Mode](#3-use-release-mode)
+  - [4. Minimize Noise](#4-minimize-noise)
+- [Custom Benchmarks](#custom-benchmarks)
+  - [Adding a New Benchmark](#adding-a-new-benchmark)
+  - [Parameterized Benchmarks](#parameterized-benchmarks)
+- [CI Integration](#ci-integration)
+  - [GitHub Actions](#github-actions)
+  - [Performance Tracking](#performance-tracking)
+- [Troubleshooting](#troubleshooting)
+  - ["Benchmark took too long"](#benchmark-took-too-long)
+  - [High Variance](#high-variance)
+  - [Outliers](#outliers)
+- [Best Practices](#best-practices)
+- [Resources](#resources)
+
 ## Overview
 
 We use [Criterion.rs](https://github.com/bheisler/criterion.rs) for performance benchmarking. Benchmarks help track performance over time and identify optimization opportunities.

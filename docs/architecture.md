@@ -1,5 +1,26 @@
 # wxlistener Architecture
 
+## Table of Contents
+
+- [Project Structure](#project-structure)
+- [Module Responsibilities](#module-responsibilities)
+  - [`main.rs`](#mainrs)
+  - [`client.rs`](#clientrs)
+  - [`config.rs`](#configrs)
+  - [`decoder.rs`](#decoderrs)
+  - [`output.rs`](#outputrs)
+- [Data Flow](#data-flow)
+- [Protocol Overview](#protocol-overview)
+  - [Packet Structure](#packet-structure)
+  - [Response Structure](#response-structure)
+- [Key Design Decisions](#key-design-decisions)
+- [Adding New Features](#adding-new-features)
+  - [Adding a New Measurement Field](#adding-a-new-measurement-field)
+  - [Adding a New Command](#adding-a-new-command)
+  - [Adding Output Format](#adding-output-format)
+- [Testing](#testing)
+- [Dependencies](#dependencies)
+
 ## Project Structure
 
 ```
