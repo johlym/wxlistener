@@ -72,7 +72,7 @@ impl DatabaseConfig {
             .as_ref()
             .context("Database name must be specified")?;
 
-        let port = self.port.unwrap_or_else(|| match db_type.as_str() {
+        let port = self.port.unwrap_or(match db_type.as_str() {
             "postgres" => 5432,
             "mysql" => 3306,
             _ => 5432,
