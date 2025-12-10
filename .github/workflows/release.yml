@@ -145,27 +145,33 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross-compilation tools (Linux ARM64)
+      - name: Install cross (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Build
+      - name: Build (Linux ARM64 with cross)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build (other targets)
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create archive (Unix)
         if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          cp ../../../wxlistener.example.toml .
+          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }} wxlistener.example.toml
           mv ${{ matrix.asset_name }}.tar.gz ../../../
 
       - name: Create archive (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          copy ../../../wxlistener.example.toml .
+          7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }} wxlistener.example.toml
           move ${{ matrix.asset_name }}.zip ../../../
 
       - name: Upload Release Asset (Unix)

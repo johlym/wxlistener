@@ -34,7 +34,7 @@ Download the latest compiled `wxlistener` binary from the [releases page](https:
 - **macOS** (Intel, Apple Silicon)
 - **Windows** (x86_64)
 
-Extract the archive and optionally move the binary to your PATH.
+Extract the archive and optionally move the binary to your PATH. Each release includes a `wxlistener.example.toml` configuration file that you can copy and customize.
 
 ### Build from Source
 

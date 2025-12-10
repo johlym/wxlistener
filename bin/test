@@ -56,10 +56,17 @@ cargo build --release
 echo -e "${GREEN}✓ Release build successful${NC}"
 echo ""
 
+# Copy example config to release directory
+echo "📄 Copying example config file..."
+cp wxlistener.example.toml ./target/release/wxlistener.example.toml
+echo -e "${GREEN}✓ Example config copied to release directory${NC}"
+echo ""
+
 # Summary
 print_section "✅ All checks passed!"
 echo -e "${GREEN}Your code is ready to ship! 🚀${NC}"
 echo ""
 echo "Binary location: ./target/release/wxlistener"
 echo "Binary size: $(du -h ./target/release/wxlistener | cut -f1)"
+echo "Example config: ./target/release/wxlistener.example.toml"
 echo ""
