@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         Ok(info) => info,
         Err(_) => {
             // Print help and exit if required arguments are missing
-            Args::parse_from(&["wxlistener", "--help"]);
+            Args::parse_from(["wxlistener", "--help"]);
             unreachable!()
         }
     };
