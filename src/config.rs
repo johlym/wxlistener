@@ -205,6 +205,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_connection_info_no_args() {
         // Clean up any environment variables first
         std::env::remove_var("WXLISTENER_IP");
