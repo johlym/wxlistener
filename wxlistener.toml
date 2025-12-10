@@ -22,5 +22,5 @@ port = 45000
 # password = "mypass"
 # database = "weather"
 
-# Table name (optional, defaults to "weather_data")
-# table_name = "weather_data"
+# Table name (optional, defaults to "wx_records")
+# table_name = "wx_records"

@@ -144,8 +144,8 @@ connection_string = "postgres://username:password@localhost:5432/weather"
 # password = "mypass"
 # database = "weather"
 
-# Table name (optional, defaults to "weather_data")
-table_name = "weather_data"
+# Table name (optional, defaults to "wx_records")
+table_name = "wx_records"
 ```
 
 Then run:
@@ -165,7 +165,7 @@ The tool supports both PostgreSQL and MySQL databases. You can configure the dat
 connection_string = "postgres://user:pass@localhost:5432/weather"
 # or
 connection_string = "mysql://user:pass@localhost:3306/weather"
-table_name = "weather_data"  # optional
+table_name = "wx_records"  # optional; this is the default table name
 ```
 
 **Option 2: Individual Fields**
@@ -178,10 +178,20 @@ port = 5432           # optional, defaults: postgres=5432, mysql=3306
 username = "myuser"
 password = "mypass"
 database = "weather"
-table_name = "weather_data"  # optional
+table_name = "wx_records"  # optional; this is the default table name
 ```
 
 The database table will be created automatically with columns matching the weather data fields. The `heap_free` field is excluded from database storage. Each weather reading is stored as a new row with a timestamp.
+
+**Create Table Manually**
+
+To create the database table without starting the listener:
+
+```bash
+wxlistener --config wxlistener.toml --db-create-table
+```
+
+This will connect to the database, create the table (if it doesn't exist), and exit.
 
 ## Output Example
 

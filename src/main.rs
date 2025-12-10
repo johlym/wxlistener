@@ -21,6 +21,20 @@ use web::{run_web_server, WebServerConfig};
 async fn main() -> Result<()> {
     let args = Args::parse();
 
+    // Handle database table creation mode
+    if args.db_create_table {
+        let db_config = args.get_database_config()?
+            .ok_or_else(|| anyhow::anyhow!(
+                "Database configuration required. Add [database] section to config file."
+            ))?;
+        
+        println!("Creating database table...");
+        let writer = DatabaseWriter::new(&db_config).await?;
+        writer.create_table().await?;
+        println!("✓ Table '{}' created successfully", db_config.table_name);
+        return Ok(());
+    }
+
     // Get connection info from args or config
     let (ip, port) = args.get_connection_info()?;
 

@@ -21,7 +21,7 @@ The simplest way to configure database access:
 ```toml
 [database]
 connection_string = "postgres://username:password@localhost:5432/weather"
-table_name = "weather_data"  # optional, defaults to "weather_data"
+table_name = "wx_records"  # optional, defaults to "wx_records"
 ```
 
 For MySQL:
@@ -29,7 +29,7 @@ For MySQL:
 ```toml
 [database]
 connection_string = "mysql://username:password@localhost:3306/weather"
-table_name = "weather_data"
+table_name = "wx_records"
 ```
 
 ### Option 2: Individual Fields
@@ -44,7 +44,7 @@ port = 5432           # optional, defaults: postgres=5432, mysql=3306
 username = "myuser"
 password = "mypass"
 database = "weather"
-table_name = "weather_data"  # optional
+table_name = "wx_records"  # optional; this is the default table name (can be overridden)
 ```
 
 ## Database Schema
@@ -82,28 +82,52 @@ The table is created automatically with the following columns:
 1. Set up your PostgreSQL or MySQL database
 2. Create a database for weather data (e.g., `CREATE DATABASE weather;`)
 3. Add database configuration to `wxlistener.toml`
-4. Run wxlistener: `wxlistener --config wxlistener.toml`
+4. (Optional) Create the table manually:
+   ```bash
+   wxlistener --config wxlistener.toml --db-create-table
+   ```
+5. Run wxlistener: `wxlistener --config wxlistener.toml`
 
 The tool will:
 
 - Connect to the database
-- Create the table if it doesn't exist
+- Create the table if it doesn't exist (unless already created)
 - Start collecting and storing weather data
 - Continue running even if database writes fail (errors are logged)
+
+### Manual Table Creation
+
+To create the database table without starting the listener, use the `--db-create-table` flag:
+
+```bash
+wxlistener --config wxlistener.toml --db-create-table
+```
+
+This will:
+
+- Connect to the configured database
+- Create the table with the appropriate schema
+- Exit immediately
+
+This is useful for:
+
+- Pre-creating tables with specific permissions
+- Verifying database connectivity
+- Setting up the schema before running the listener
 
 ## Example Queries
 
 ### Get latest reading
 
 ```sql
-SELECT * FROM weather_data ORDER BY timestamp DESC LIMIT 1;
+SELECT * FROM wx_records ORDER BY timestamp DESC LIMIT 1;
 ```
 
 ### Get average temperature for today
 
 ```sql
 SELECT AVG(outtemp) as avg_temp
-FROM weather_data
+FROM wx_records
 WHERE timestamp >= CURRENT_DATE;
 ```
 
@@ -113,7 +137,7 @@ WHERE timestamp >= CURRENT_DATE;
 SELECT
     DATE_TRUNC('hour', timestamp) as hour,
     MAX(rain_day) - MIN(rain_day) as rainfall
-FROM weather_data
+FROM wx_records
 GROUP BY DATE_TRUNC('hour', timestamp)
 ORDER BY hour DESC;
 ```

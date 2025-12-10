@@ -41,6 +41,10 @@ pub struct Args {
     /// Web server port (default: 18888)
     #[arg(long, default_value = "18888")]
     pub web_port: u16,
+
+    /// Create database table and exit
+    #[arg(long)]
+    pub db_create_table: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -121,6 +125,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -139,6 +144,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -161,6 +167,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -183,6 +190,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -205,6 +213,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let result = args.get_connection_info();
@@ -226,6 +235,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let result = args.get_connection_info();
@@ -250,6 +260,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let result = args.get_connection_info();
@@ -308,6 +319,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -338,6 +350,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -365,6 +378,7 @@ mod tests {
             web: false,
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
+            db_create_table: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();

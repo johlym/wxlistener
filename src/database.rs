@@ -34,13 +34,13 @@ pub struct DatabaseConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database: Option<String>,
 
-    /// Table name (default: "weather_data")
+    /// Table name (default: "wx_records")
     #[serde(default = "default_table_name")]
     pub table_name: String,
 }
 
 fn default_table_name() -> String {
-    "weather_data".to_string()
+    "wx_records".to_string()
 }
 
 impl DatabaseConfig {
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_default_table_name() {
-        assert_eq!(default_table_name(), "weather_data");
+        assert_eq!(default_table_name(), "wx_records");
     }
 
     #[test]
@@ -293,7 +293,7 @@ mod tests {
             username: None,
             password: None,
             database: None,
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -310,7 +310,7 @@ mod tests {
             username: Some("user".to_string()),
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -327,7 +327,7 @@ mod tests {
             username: Some("user".to_string()),
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -344,7 +344,7 @@ mod tests {
             username: Some("user".to_string()),
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -361,7 +361,7 @@ mod tests {
             username: Some("user".to_string()),
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -378,7 +378,7 @@ mod tests {
             username: None,
             password: None,
             database: None,
-            table_name: "weather_data".to_string(),
+            table_name: "wx_records".to_string(),
         };
 
         let result = config.build_connection_string();
