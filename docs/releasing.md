@@ -4,7 +4,7 @@ This project uses automated releases via GitHub Actions.
 
 ## How It Works
 
-When you push a commit to the `main` branch that changes the `version` field in `Cargo.toml`, the release workflow automatically:
+The release workflow runs on every push to the `main` branch. When the `version` field in `Cargo.toml` has changed, it automatically:
 
 1. Detects the version change
 2. Creates a new Git tag (e.g., `v0.1.2`)
