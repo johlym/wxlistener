@@ -1,9 +1,9 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        ConnectInfo,
+        ConnectInfo, State,
     },
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Json},
     routing::get,
     Router,
 };
@@ -229,12 +229,15 @@ pub async fn run_web_server(
     });
 
     // Build the router with logging
+    let tx_for_ws = tx.clone();
     let app = Router::new()
         .route("/", get(index_handler))
         .route(
             "/ws",
-            get(move |ws, addr| websocket_handler(ws, tx.clone(), addr)),
+            get(move |ws, addr| websocket_handler(ws, tx_for_ws.clone(), addr)),
         )
+        .route("/api/v1/current.json", get(api_current_handler))
+        .with_state(tx)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO)),
@@ -299,4 +302,35 @@ async fn handle_socket(socket: WebSocket, tx: Arc<broadcast::Sender<String>>, ad
     };
 
     println!("[{}] WebSocket connection closed", addr);
+}
+
+pub async fn api_current_handler(
+    State(tx): State<Arc<broadcast::Sender<String>>>,
+    addr: Option<ConnectInfo<SocketAddr>>,
+) -> impl IntoResponse {
+    if let Some(ConnectInfo(addr)) = addr {
+        println!("[{}] GET /api/v1/current.json", addr);
+    }
+
+    // Subscribe to the broadcast channel to get the latest data
+    let mut rx = tx.subscribe();
+
+    // Try to receive the latest message with a timeout
+    match tokio::time::timeout(Duration::from_secs(5), rx.recv()).await {
+        Ok(Ok(data)) => {
+            // Parse the JSON string and return it
+            match serde_json::from_str::<serde_json::Value>(&data) {
+                Ok(json) => Json(json),
+                Err(_) => Json(serde_json::json!({
+                    "error": "Failed to parse weather data"
+                })),
+            }
+        }
+        Ok(Err(_)) => Json(serde_json::json!({
+            "error": "No data available"
+        })),
+        Err(_) => Json(serde_json::json!({
+            "error": "Timeout waiting for data"
+        })),
+    }
 }

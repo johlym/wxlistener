@@ -4,3 +4,4 @@ pub mod database;
 pub mod decoder;
 pub mod output;
 pub mod protocol;
+pub mod web;
