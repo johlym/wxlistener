@@ -1,0 +1,333 @@
+#!/bin/bash
+#
+# Proxmox LXC Container Setup Script for wxlistener
+# 
+# This script creates and configures a Proxmox LXC container for running wxlistener
+# 
+# Usage:
+#   ./bin/proxmox-lxc-setup [OPTIONS]
+#
+# Options:
+#   --ctid <ID>           Container ID (default: next available)
+#   --hostname <NAME>     Container hostname (default: wxlistener)
+#   --storage <STORAGE>   Storage location (default: local-lvm)
+#   --bridge <BRIDGE>     Network bridge (default: vmbr0)
+#   --ip <IP/CIDR>        Static IP address (default: DHCP)
+#   --gateway <IP>        Gateway IP (required if using static IP)
+#   --help                Show this help message
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Default values
+CTID=""
+HOSTNAME="wxlistener"
+STORAGE="local-lvm"
+BRIDGE="vmbr0"
+IP_CONFIG="dhcp"
+GATEWAY=""
+MEMORY=512
+CORES=1
+DISK_SIZE=4
+TEMPLATE="ubuntu-22.04-standard"
+
+# FAIR WARNING (It's RED text for a reason)
+echo ""
+echo "${RED}[!WARNING]${NC}"
+echo "This script is not yet production-ready. Use at your own risk. I honestly have no idea if it works, yet."
+echo ""
+echo "${YELLOW}Proceed with caution.${NC}"
+echo ""
+
+# Prompt, because after this, there be dragons
+read -p "Are you sure you want to continue? (y/N) " -n 1 -r
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "\nAborting."
+    exit 1
+fi
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --ctid)
+            CTID="$2"
+            shift 2
+            ;;
+        --hostname)
+            HOSTNAME="$2"
+            shift 2
+            ;;
+        --storage)
+            STORAGE="$2"
+            shift 2
+            ;;
+        --bridge)
+            BRIDGE="$2"
+            shift 2
+            ;;
+        --ip)
+            IP_CONFIG="$2"
+            shift 2
+            ;;
+        --gateway)
+            GATEWAY="$2"
+            shift 2
+            ;;
+        --help)
+            grep "^#" "$0" | grep -v "#!/bin/bash" | sed 's/^# //'
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Function to print colored messages
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_section() {
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+# Check if running on Proxmox
+if ! command -v pct &> /dev/null; then
+    print_error "This script must be run on a Proxmox VE host"
+    exit 1
+fi
+
+# Auto-detect next available CTID if not specified
+if [ -z "$CTID" ]; then
+    CTID=$(pvesh get /cluster/nextid)
+    print_info "Auto-detected next available CTID: $CTID"
+fi
+
+# Validate static IP configuration
+if [ "$IP_CONFIG" != "dhcp" ] && [ -z "$GATEWAY" ]; then
+    print_error "Gateway is required when using static IP"
+    exit 1
+fi
+
+print_section "Proxmox LXC Container Setup for wxlistener"
+
+echo "Configuration:"
+echo "  Container ID: $CTID"
+echo "  Hostname: $HOSTNAME"
+echo "  Memory: ${MEMORY}MB"
+echo "  CPU Cores: $CORES"
+echo "  Disk Size: ${DISK_SIZE}GB"
+echo "  Storage: $STORAGE"
+echo "  Network Bridge: $BRIDGE"
+echo "  IP Configuration: $IP_CONFIG"
+if [ -n "$GATEWAY" ]; then
+    echo "  Gateway: $GATEWAY"
+fi
+echo ""
+
+read -p "Continue with these settings? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    print_info "Setup cancelled"
+    exit 0
+fi
+
+print_section "Creating LXC Container"
+
+# Build network configuration
+if [ "$IP_CONFIG" = "dhcp" ]; then
+    NET_CONFIG="name=eth0,bridge=$BRIDGE,ip=dhcp"
+else
+    NET_CONFIG="name=eth0,bridge=$BRIDGE,ip=$IP_CONFIG,gw=$GATEWAY"
+fi
+
+# Create the container
+print_info "Creating container $CTID..."
+pct create $CTID \
+    local:vztmpl/${TEMPLATE}_amd64.tar.zst \
+    --hostname $HOSTNAME \
+    --memory $MEMORY \
+    --cores $CORES \
+    --rootfs $STORAGE:$DISK_SIZE \
+    --net0 $NET_CONFIG \
+    --unprivileged 1 \
+    --features nesting=1 \
+    --onboot 1 \
+    --description "wxlistener - Weather Station Data Collector"
+
+print_success "Container created successfully"
+
+# Start the container
+print_info "Starting container..."
+pct start $CTID
+sleep 5
+print_success "Container started"
+
+# Wait for container to be ready
+print_info "Waiting for container to be ready..."
+for i in {1..30}; do
+    if pct exec $CTID -- test -f /var/lib/dpkg/lock-frontend 2>/dev/null; then
+        sleep 2
+    else
+        break
+    fi
+done
+
+print_section "Installing Dependencies"
+
+# Update system and install dependencies
+print_info "Updating system packages..."
+pct exec $CTID -- bash -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
+
+print_info "Installing build dependencies..."
+pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    git \
+    ca-certificates"
+
+print_success "Dependencies installed"
+
+print_section "Installing Rust"
+
+# Install Rust
+print_info "Installing Rust toolchain..."
+pct exec $CTID -- bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+pct exec $CTID -- bash -c "echo 'source \$HOME/.cargo/env' >> /root/.bashrc"
+
+print_success "Rust installed"
+
+print_section "Cloning wxlistener Repository"
+
+# Clone the repository
+print_info "Cloning wxlistener from GitHub..."
+pct exec $CTID -- bash -c "cd /opt && git clone https://github.com/johlym/wxlistener.git"
+
+print_success "Repository cloned to /opt/wxlistener"
+
+print_section "Building wxlistener"
+
+# Build the application
+print_info "Building wxlistener (this may take several minutes)..."
+pct exec $CTID -- bash -c "cd /opt/wxlistener && source /root/.cargo/env && cargo build --release"
+
+print_success "Build completed"
+
+# Install the binary
+print_info "Installing binary to /usr/local/bin..."
+pct exec $CTID -- bash -c "cp /opt/wxlistener/target/release/wxlistener /usr/local/bin/"
+pct exec $CTID -- bash -c "chmod +x /usr/local/bin/wxlistener"
+
+print_success "Binary installed"
+
+print_section "Creating Configuration"
+
+# Create config directory
+pct exec $CTID -- bash -c "mkdir -p /etc/wxlistener"
+
+# Copy example config
+pct exec $CTID -- bash -c "cp /opt/wxlistener/wxlistener.example.toml /etc/wxlistener/wxlistener.toml"
+
+print_success "Configuration file created at /etc/wxlistener/wxlistener.toml"
+
+print_section "Creating systemd Service"
+
+# Create systemd service file
+pct exec $CTID -- bash -c "cat > /etc/systemd/system/wxlistener.service << 'EOF'
+[Unit]
+Description=wxlistener - Weather Station Data Collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wxlistener
+ExecStart=/usr/local/bin/wxlistener --config /etc/wxlistener/wxlistener.toml --web
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/wxlistener
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# Reload systemd
+pct exec $CTID -- systemctl daemon-reload
+
+print_success "systemd service created"
+
+print_section "Setup Complete!"
+
+echo ""
+print_success "wxlistener LXC container setup completed successfully!"
+echo ""
+echo "Next steps:"
+echo ""
+echo "1. Configure your weather station IP:"
+echo "   ${BLUE}pct exec $CTID -- nano /etc/wxlistener/wxlistener.toml${NC}"
+echo ""
+echo "2. Enable and start the service:"
+echo "   ${BLUE}pct exec $CTID -- systemctl enable wxlistener${NC}"
+echo "   ${BLUE}pct exec $CTID -- systemctl start wxlistener${NC}"
+echo ""
+echo "3. Check service status:"
+echo "   ${BLUE}pct exec $CTID -- systemctl status wxlistener${NC}"
+echo ""
+echo "4. View logs:"
+echo "   ${BLUE}pct exec $CTID -- journalctl -u wxlistener -f${NC}"
+echo ""
+echo "5. Access web interface:"
+if [ "$IP_CONFIG" = "dhcp" ]; then
+    echo "   ${BLUE}http://<container-ip>:18888${NC}"
+    echo "   (Get IP with: ${BLUE}pct exec $CTID -- ip addr show eth0${NC})"
+else
+    CONTAINER_IP=$(echo $IP_CONFIG | cut -d'/' -f1)
+    echo "   ${BLUE}http://$CONTAINER_IP:18888${NC}"
+fi
+echo ""
+echo "6. Access API:"
+if [ "$IP_CONFIG" = "dhcp" ]; then
+    echo "   ${BLUE}http://<container-ip>:18888/api/v1/current.json${NC}"
+else
+    CONTAINER_IP=$(echo $IP_CONFIG | cut -d'/' -f1)
+    echo "   ${BLUE}http://$CONTAINER_IP:18888/api/v1/current.json${NC}"
+fi
+echo ""
+print_info "Container ID: $CTID"
+print_info "Hostname: $HOSTNAME"
+echo ""

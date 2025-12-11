@@ -16,6 +16,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
   - [Pre-built Binary](#pre-built-binary)
   - [Build from Source](#build-from-source)
   - [Docker](#docker)
+  - [Proxmox LXC](#proxmox-lxc)
 - [Usage](#usage)
   - [Command Line Arguments](#command-line-arguments)
   - [Web Interface](#web-interface)
@@ -41,6 +42,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - [Database (structure and storage)](docs/database.md)
 - [Docker support](docs/docker.md)
 - [Fuzzing](docs/fuzzing.md)
+- [Proxmox LXC Deployment](docs/proxmox.md) - Deploy in Proxmox containers
 - [Releasing](docs/releasing.md)
 - [Testing](docs/testing.md)
   - [Coverage (testing)](docs/coverage.md)
@@ -116,6 +118,46 @@ docker-compose up
 - `WXLISTENER_FORMAT` - Output format: `text` or `json` (default: text)
 
 See [docs/docker.md](docs/docker.md) for detailed Docker documentation.
+
+### Proxmox LXC
+
+> [!WARNING]
+> This script is not yet production-ready. Use at your own risk. I honestly have no idea if it works, yet.
+
+**Automated setup for Proxmox VE** - deploy in a lightweight container!
+
+```bash
+# On your Proxmox host - Option 1: Download and run
+wget https://raw.githubusercontent.com/johlym/wxlistener/main/bin/proxmox-lxc-setup
+chmod +x proxmox-lxc-setup
+./proxmox-lxc-setup
+
+# Option 2: Run directly with bash -c
+bash -c "$(wget -qO- https://raw.githubusercontent.com/johlym/wxlistener/main/bin/proxmox-lxc-setup)"
+
+# With static IP
+./proxmox-lxc-setup --ip 192.168.1.100/24 --gateway 192.168.1.1
+
+# Or with bash -c and arguments
+bash -c "$(wget -qO- https://raw.githubusercontent.com/johlym/wxlistener/main/bin/proxmox-lxc-setup)" -- --ip 192.168.1.100/24 --gateway 192.168.1.1
+```
+
+**Container Specs:**
+
+- Ubuntu 22.04 LTS
+- 512MB RAM
+- 1 CPU core
+- 4GB disk
+
+The script automatically:
+
+- Creates and configures the LXC container
+- Installs all dependencies and Rust toolchain
+- Builds wxlistener from source
+- Sets up systemd service for auto-start
+- Configures web server on port 18888
+
+See [docs/proxmox.md](docs/proxmox.md) for detailed Proxmox deployment guide.
 
 ## Usage
 
