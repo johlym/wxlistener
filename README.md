@@ -35,6 +35,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 
 ## Topic-specific Documentation
 
+- [API Reference](docs/api.md) - REST API for accessing weather data
 - [Architecture](docs/architecture.md)
 - [Benchmarking](docs/benchmarking.md)
 - [Database (structure and storage)](docs/database.md)
@@ -161,9 +162,12 @@ Features:
 
 - **Real-time updates** - Data refreshes automatically every 5 seconds
 - **WebSocket connection** - Efficient, low-latency updates
+- **REST API** - JSON endpoint at `/api/v1/current.json` for programmatic access
 - **Auto-reconnect** - Automatically reconnects if connection is lost
 - **Dark theme** - Easy on the eyes for 24/7 monitoring
 - **Plain text display** - Simple, readable format with formatted units
+
+See the [API documentation](docs/api.md) for details on accessing weather data programmatically.
 
 ### Configuration File
 
