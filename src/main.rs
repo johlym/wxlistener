@@ -2,6 +2,7 @@ mod client;
 mod config;
 mod database;
 mod decoder;
+mod mqtt;
 mod output;
 mod protocol;
 mod web;
@@ -14,6 +15,7 @@ use std::time::Duration;
 use client::GW1000Client;
 use config::Args;
 use database::DatabaseWriter;
+use mqtt::MqttPublisher;
 use output::print_livedata;
 use web::{run_web_server, WebServerConfig};
 
@@ -68,6 +70,23 @@ async fn main() -> Result<()> {
             Err(e) => {
                 eprintln!("✗ Database error: {}", e);
                 eprintln!("  Continuing without database support");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // Initialize MQTT publisher if configured
+    let mqtt_publisher = if let Some(mqtt_config) = args.get_mqtt_config()? {
+        match MqttPublisher::new(&mqtt_config).await {
+            Ok(publisher) => {
+                println!("✓ Connected to MQTT broker (topic: {})", publisher.topic());
+                Some(publisher)
+            }
+            Err(e) => {
+                eprintln!("✗ MQTT error: {}", e);
+                eprintln!("  Continuing without MQTT support");
                 None
             }
         }

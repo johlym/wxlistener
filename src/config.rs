@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::database::DatabaseConfig;
+use crate::mqtt::MqttConfig;
 
 /// GW1000/Ecowitt Gateway Weather Station Listener
 #[derive(Parser, Debug)]
@@ -60,6 +61,8 @@ pub struct Config {
     pub port: u16,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database: Option<DatabaseConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mqtt: Option<MqttConfig>,
 }
 
 fn default_port() -> u16 {
@@ -107,6 +110,19 @@ impl Args {
             let config: Config =
                 toml::from_str(&config_str).context("Failed to parse config file")?;
             Ok(config.database)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Get MQTT configuration from config file if present
+    pub fn get_mqtt_config(&self) -> Result<Option<MqttConfig>> {
+        if let Some(config_path) = &self.config {
+            let config_str = fs::read_to_string(config_path)
+                .context(format!("Failed to read config file: {:?}", config_path))?;
+            let config: Config =
+                toml::from_str(&config_str).context("Failed to parse config file")?;
+            Ok(config.mqtt)
         } else {
             Ok(None)
         }

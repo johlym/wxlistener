@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
 use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
+use serde::Deserialize;
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct MqttConfig {
     pub connection_string: Option<String>,
     pub host: Option<String>,
