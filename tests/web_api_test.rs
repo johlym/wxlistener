@@ -18,7 +18,10 @@ async fn test_api_current_json_endpoint_exists() {
 
     // Build the router
     let app = axum::Router::new()
-        .route("/api/v1/current.json", axum::routing::get(api_current_handler))
+        .route(
+            "/api/v1/current.json",
+            axum::routing::get(api_current_handler),
+        )
         .with_state(tx);
 
     // Make a request to the API endpoint
@@ -53,7 +56,10 @@ async fn test_api_current_json_returns_json() {
     let _ = tx.send(test_data.to_string());
 
     let app = axum::Router::new()
-        .route("/api/v1/current.json", axum::routing::get(api_current_handler))
+        .route(
+            "/api/v1/current.json",
+            axum::routing::get(api_current_handler),
+        )
         .with_state(tx);
 
     let response = app
@@ -93,7 +99,10 @@ async fn test_api_current_json_with_data() {
     });
 
     let app = axum::Router::new()
-        .route("/api/v1/current.json", axum::routing::get(api_current_handler))
+        .route(
+            "/api/v1/current.json",
+            axum::routing::get(api_current_handler),
+        )
         .with_state(tx_clone);
 
     let response = app
@@ -127,7 +136,10 @@ async fn test_api_current_json_timeout() {
     // Don't send any data - should timeout
 
     let app = axum::Router::new()
-        .route("/api/v1/current.json", axum::routing::get(api_current_handler))
+        .route(
+            "/api/v1/current.json",
+            axum::routing::get(api_current_handler),
+        )
         .with_state(tx);
 
     let response = app
