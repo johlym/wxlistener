@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Audit script for wxlistener
+# Wraps cargo audit with support for --fix and --dry-run flags
+#
+# Usage:
+#   bin/audit              # Run cargo audit
+#   bin/audit --fix        # Run cargo audit fix
+#   bin/audit --dry-run --fix  # Run cargo audit fix --dry-run
+#   bin/audit --fix --dry-run  # Run cargo audit fix --dry-run (order doesn't matter)
+
+set -e
+
+# Parse arguments
+FIX=false
+DRY_RUN=false
+
+for arg in "$@"; do
+    case $arg in
+        --fix)
+            FIX=true
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: bin/audit [--fix] [--dry-run]"
+            exit 1
+            ;;
+    esac
+done
+
+# Build the command
+if [ "$FIX" = true ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo "Running: cargo audit fix --dry-run"
+        cargo audit fix --dry-run
+    else
+        echo "Running: cargo audit fix"
+        cargo audit fix
+    fi
+else
+    if [ "$DRY_RUN" = true ]; then
+        echo "Warning: --dry-run only applies with --fix, ignoring"
+    fi
+    echo "Running: cargo audit"
+    cargo audit
+fi
