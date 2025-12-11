@@ -67,9 +67,9 @@ async fn main() -> Result<()> {
                 Some(writer)
             }
             Err(e) => {
-                eprintln!("✗ Database error: {}", e);
-                eprintln!("  Continuing without database support");
-                None
+                eprintln!("✗ Database connection failed: {}", e);
+                eprintln!("  Cannot continue with database configuration.");
+                std::process::exit(1);
             }
         }
     } else {
@@ -84,9 +84,9 @@ async fn main() -> Result<()> {
                 Some(publisher)
             }
             Err(e) => {
-                eprintln!("✗ MQTT error: {}", e);
-                eprintln!("  Continuing without MQTT support");
-                None
+                eprintln!("✗ MQTT connection failed: {}", e);
+                eprintln!("  Cannot continue with MQTT configuration.");
+                std::process::exit(1);
             }
         }
     } else {
@@ -147,11 +147,13 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Display output
-                if args.format == "json" {
-                    println!("{}", serde_json::to_string_pretty(&data)?);
-                } else {
-                    print_livedata(&data, &timestamp);
+                // Display output only if no MQTT or database is configured
+                if db_writer.is_none() && mqtt_publisher.is_none() {
+                    if args.format == "json" {
+                        println!("{}", serde_json::to_string_pretty(&data)?);
+                    } else {
+                        print_livedata(&data, &timestamp);
+                    }
                 }
             }
             Err(e) => eprintln!("Error: {}", e),
