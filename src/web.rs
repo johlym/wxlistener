@@ -206,7 +206,7 @@ pub async fn run_web_server(
                     }
 
                     let message = serde_json::json!({
-                        "timestamp": timestamp.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                        "timestamp": timestamp.to_rfc3339(),
                         "data": formatted_data,
                     });
 
@@ -217,7 +217,7 @@ pub async fn run_web_server(
                 Err(e) => {
                     let error_msg = serde_json::json!({
                         "error": format!("Failed to fetch data: {}", e),
-                        "timestamp": Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                        "timestamp": Utc::now().to_rfc3339(),
                     });
 
                     if let Ok(json) = serde_json::to_string(&error_msg) {

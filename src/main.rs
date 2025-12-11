@@ -141,7 +141,7 @@ async fn main() -> Result<()> {
                 // Publish to MQTT if configured
                 if let Some(ref publisher) = mqtt_publisher {
                     let json_data = serde_json::json!({
-                        "timestamp": timestamp.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                        "timestamp": timestamp.to_rfc3339(),
                         "data": data
                     });
                     if let Err(e) = publisher.publish(&json_data.to_string()).await {

@@ -3,7 +3,10 @@ use std::collections::HashMap;
 
 pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
     println!("============================================================");
-    println!("LIVE DATA - {}", timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "LIVE DATA - {}",
+        timestamp.format("%B %d, %Y at %I:%M:%S %p UTC")
+    );
     println!("============================================================");
 
     let mut keys: Vec<_> = data.keys().collect();
