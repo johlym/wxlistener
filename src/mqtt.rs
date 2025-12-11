@@ -32,10 +32,7 @@ impl MqttConfig {
             self.parse_connection_string(conn_str)
         } else if let Some(host) = &self.host {
             let port = self.port.unwrap_or(1883);
-            let topic = self
-                .topic
-                .clone()
-                .unwrap_or_else(|| "wx/live".to_string());
+            let topic = self.topic.clone().unwrap_or_else(|| "wx/live".to_string());
             Ok((host.clone(), port, topic))
         } else {
             anyhow::bail!(
@@ -47,8 +44,7 @@ impl MqttConfig {
     }
 
     fn parse_connection_string(&self, conn_str: &str) -> Result<(String, u16, String)> {
-        let url = url::Url::parse(conn_str)
-            .context("Failed to parse MQTT connection string")?;
+        let url = url::Url::parse(conn_str).context("Failed to parse MQTT connection string")?;
 
         if url.scheme() != "mqtt" && url.scheme() != "mqtts" {
             anyhow::bail!("MQTT connection string must start with mqtt:// or mqtts://");
@@ -64,9 +60,7 @@ impl MqttConfig {
         let topic = if !url.path().is_empty() && url.path() != "/" {
             url.path().trim_start_matches('/').to_string()
         } else {
-            self.topic
-                .clone()
-                .unwrap_or_else(|| "wx/live".to_string())
+            self.topic.clone().unwrap_or_else(|| "wx/live".to_string())
         };
 
         Ok((host, port, topic))
