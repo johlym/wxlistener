@@ -3,6 +3,9 @@ use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
 use serde::Deserialize;
 use std::time::Duration;
 
+/// MQTT connection information: (host, port, topic, username, password)
+type MqttConnectionInfo = (String, u16, String, Option<String>, Option<String>);
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct MqttConfig {
     pub connection_string: Option<String>,
@@ -27,9 +30,7 @@ impl MqttConfig {
         }
     }
 
-    pub fn get_connection_info(
-        &self,
-    ) -> Result<(String, u16, String, Option<String>, Option<String>)> {
+    pub fn get_connection_info(&self) -> Result<MqttConnectionInfo> {
         if let Some(conn_str) = &self.connection_string {
             self.parse_connection_string(conn_str)
         } else if let Some(host) = &self.host {
@@ -51,10 +52,7 @@ impl MqttConfig {
         }
     }
 
-    fn parse_connection_string(
-        &self,
-        conn_str: &str,
-    ) -> Result<(String, u16, String, Option<String>, Option<String>)> {
+    fn parse_connection_string(&self, conn_str: &str) -> Result<MqttConnectionInfo> {
         let url = url::Url::parse(conn_str).context("Failed to parse MQTT connection string")?;
 
         if url.scheme() != "mqtt" && url.scheme() != "mqtts" {
