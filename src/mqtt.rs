@@ -98,27 +98,50 @@ impl MqttPublisher {
 
         let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
 
-        tokio::spawn(async move {
+        // Wait for initial connection confirmation
+        let mut connection_confirmed = false;
+        let timeout = tokio::time::timeout(Duration::from_secs(5), async {
             loop {
                 match eventloop.poll().await {
-                    Ok(Event::Incoming(Incoming::ConnAck(_))) => {
-                        println!("Connected to MQTT broker");
-                    }
-                    Ok(Event::Incoming(Incoming::Disconnect)) => {
-                        println!("Disconnected from MQTT broker");
+                    Ok(Event::Incoming(Incoming::ConnAck(connack))) => {
+                        if connack.code == rumqttc::ConnectReturnCode::Success {
+                            connection_confirmed = true;
+                            break Ok(());
+                        } else {
+                            break Err(anyhow::anyhow!("MQTT connection refused: {:?}", connack.code));
+                        }
                     }
                     Err(e) => {
-                        eprintln!("MQTT connection error: {}", e);
-                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        break Err(anyhow::anyhow!("MQTT connection error: {}", e));
                     }
                     _ => {}
                 }
             }
-        });
+        })
+        .await;
 
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        Ok(Self { client, topic })
+        match timeout {
+            Ok(Ok(())) => {
+                // Connection successful, spawn background task to handle events
+                tokio::spawn(async move {
+                    loop {
+                        match eventloop.poll().await {
+                            Ok(Event::Incoming(Incoming::Disconnect)) => {
+                                eprintln!("MQTT broker disconnected");
+                            }
+                            Err(e) => {
+                                eprintln!("MQTT connection error: {}", e);
+                                tokio::time::sleep(Duration::from_secs(5)).await;
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+                Ok(Self { client, topic })
+            }
+            Ok(Err(e)) => Err(e),
+            Err(_) => Err(anyhow::anyhow!("MQTT connection timeout after 5 seconds")),
+        }
     }
 
     pub async fn publish(&self, payload: &str) -> Result<()> {

@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
             }
             Err(e) => {
                 eprintln!("✗ MQTT connection failed: {}", e);
-                eprintln!("  Cannot continue with MQTT configuration.");
+                eprintln!("  Cannot continue with MQTT as it is currently configured.");
                 std::process::exit(1);
             }
         }
@@ -132,7 +132,9 @@ async fn main() -> Result<()> {
                 // Write to database if configured
                 if let Some(ref writer) = db_writer {
                     if let Err(e) = writer.insert_data(&data, &timestamp).await {
-                        eprintln!("Database write error: {}", e);
+                        eprintln!("✗ Database write error: {}", e);
+                        eprintln!("  Cannot continue with database configuration.");
+                        std::process::exit(1);
                     }
                 }
 
@@ -143,7 +145,9 @@ async fn main() -> Result<()> {
                         "data": data
                     });
                     if let Err(e) = publisher.publish(&json_data.to_string()).await {
-                        eprintln!("MQTT publish error: {}", e);
+                        eprintln!("✗ MQTT publish error: {}", e);
+                        eprintln!("  Cannot continue with MQTT configuration.");
+                        std::process::exit(1);
                     }
                 }
 
