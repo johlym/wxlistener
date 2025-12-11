@@ -1,6 +1,6 @@
 [package]
 name = "wxlistener"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 
 [dependencies]
@@ -23,6 +23,7 @@ tempfile = "3.8"
 proptest = "1.4"
 criterion = "0.5"
 serial_test = "3.0"
+tower = "0.5"
 
 [[bench]]
 name = "decoder_bench"
