@@ -42,6 +42,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - [Database (structure and storage)](docs/database.md)
 - [Docker support](docs/docker.md)
 - [Fuzzing](docs/fuzzing.md)
+- [MQTT Integration](docs/mqtt.md) - Publish data to MQTT brokers
 - [Proxmox LXC Deployment](docs/proxmox.md) - Deploy in Proxmox containers
 - [Releasing](docs/releasing.md)
 - [Testing](docs/testing.md)
@@ -56,6 +57,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **Continuous monitoring** - Poll at regular intervals (default: 5 seconds)
 - **Web interface** - Real-time browser dashboard with WebSocket updates
 - **Database support** - Store data in PostgreSQL or MySQL databases
+- **MQTT publishing** - Publish data to MQTT brokers for home automation
 - **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
 - **Docker support** - Run in containers for easy deployment
 
@@ -235,6 +237,18 @@ connection_string = "postgres://username:password@localhost:5432/weather"
 
 # Table name (optional, defaults to "wx_records")
 table_name = "wx_records"
+
+# Optional: MQTT configuration
+[mqtt]
+# Option 1: Use a connection string
+connection_string = "mqtt://localhost:1883/wx/live"
+
+# Option 2: Use individual fields (if connection_string is not provided)
+# host = "localhost"
+# port = 1883              # default: 1883
+# topic = "wx/live"        # default: wx/live
+# username = "mqtt_user"   # optional
+# password = "mqtt_pass"   # optional
 ```
 
 Then run:
@@ -281,6 +295,49 @@ wxlistener --config wxlistener.toml --db-create-table
 ```
 
 This will connect to the database, create the table (if it doesn't exist), and exit. This is useful for scripts and automated deployments.
+
+#### MQTT Configuration
+
+wxlistener can publish weather data to an MQTT broker for integration with home automation systems like Home Assistant, Node-RED, or other MQTT-enabled applications.
+
+**Option 1: Connection String**
+
+```toml
+[mqtt]
+connection_string = "mqtt://localhost:1883/wx/live"
+# With authentication:
+# connection_string = "mqtt://username:password@broker.example.com:1883/weather/outdoor"
+```
+
+**Option 2: Individual Fields**
+
+```toml
+[mqtt]
+host = "mqtt.example.com"
+port = 1883              # optional, default: 1883
+topic = "wx/live"        # optional, default: wx/live
+client_id = "wxlistener" # optional, auto-generated
+username = "mqtt_user"   # optional
+password = "mqtt_pass"   # optional
+```
+
+**Message Format**
+
+Data is published in JSON format:
+
+```json
+{
+  "timestamp": "2025-12-10 15:30:45 UTC",
+  "data": {
+    "outtemp": "15.5°C",
+    "outhumid": "65%",
+    "wind_speed": "3.5 m/s",
+    ...
+  }
+}
+```
+
+See the [MQTT documentation](docs/mqtt.md) for detailed configuration, integration examples, and troubleshooting.
 
 ## Output Example
 

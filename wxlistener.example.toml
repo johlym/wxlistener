@@ -27,3 +27,18 @@ port = 45000
 
 # Table name (optional, defaults to "wx_records")
 # table_name = "wx_records"
+
+# Optional: MQTT configuration
+# Uncomment and configure to enable MQTT publishing
+# [mqtt]
+# Option 1: Use a connection string
+# connection_string = "mqtt://localhost:1883/wx/live"
+# connection_string = "mqtt://username:password@broker.example.com:1883/weather/outdoor"
+
+# Option 2: Use individual fields
+# host = "localhost"
+# port = 1883              # optional, default: 1883
+# topic = "wx/live"        # optional, default: wx/live
+# client_id = "wxlistener" # optional, auto-generated
+# username = "mqtt_user"   # optional
+# password = "mqtt_pass"   # optional
