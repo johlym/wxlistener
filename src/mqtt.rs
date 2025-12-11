@@ -27,23 +27,34 @@ impl MqttConfig {
         }
     }
 
-    pub fn get_connection_info(&self) -> Result<(String, u16, String)> {
+    pub fn get_connection_info(
+        &self,
+    ) -> Result<(String, u16, String, Option<String>, Option<String>)> {
         if let Some(conn_str) = &self.connection_string {
             self.parse_connection_string(conn_str)
         } else if let Some(host) = &self.host {
             let port = self.port.unwrap_or(1883);
             let topic = self.topic.clone().unwrap_or_else(|| "wx/live".to_string());
-            Ok((host.clone(), port, topic))
+            Ok((
+                host.clone(),
+                port,
+                topic,
+                self.username.clone(),
+                self.password.clone(),
+            ))
         } else {
             anyhow::bail!(
                 "MQTT broker must be specified via:\n\
-                 - Connection string: mqtt://host:port/topic\n\
+                 - Connection string: mqtt://[username:password@]host:port/topic\n\
                  - Individual fields: host, port (optional), topic (optional)"
             );
         }
     }
 
-    fn parse_connection_string(&self, conn_str: &str) -> Result<(String, u16, String)> {
+    fn parse_connection_string(
+        &self,
+        conn_str: &str,
+    ) -> Result<(String, u16, String, Option<String>, Option<String>)> {
         let url = url::Url::parse(conn_str).context("Failed to parse MQTT connection string")?;
 
         if url.scheme() != "mqtt" && url.scheme() != "mqtts" {
@@ -63,7 +74,19 @@ impl MqttConfig {
             self.topic.clone().unwrap_or_else(|| "wx/live".to_string())
         };
 
-        Ok((host, port, topic))
+        // Extract username and password from URL if present
+        let username = if !url.username().is_empty() {
+            Some(url.username().to_string())
+        } else {
+            self.username.clone()
+        };
+
+        let password = url
+            .password()
+            .map(|p| p.to_string())
+            .or_else(|| self.password.clone());
+
+        Ok((host, port, topic, username, password))
     }
 
     pub fn get_client_id(&self) -> String {
@@ -86,13 +109,13 @@ pub struct MqttPublisher {
 
 impl MqttPublisher {
     pub async fn new(config: &MqttConfig) -> Result<Self> {
-        let (host, port, topic) = config.get_connection_info()?;
+        let (host, port, topic, username, password) = config.get_connection_info()?;
         let client_id = config.get_client_id();
 
         let mut mqtt_options = MqttOptions::new(client_id, host, port);
         mqtt_options.set_keep_alive(Duration::from_secs(30));
 
-        if let (Some(username), Some(password)) = (&config.username, &config.password) {
+        if let (Some(username), Some(password)) = (username, password) {
             mqtt_options.set_credentials(username, password);
         }
 
@@ -108,7 +131,10 @@ impl MqttPublisher {
                             connection_confirmed = true;
                             break Ok(());
                         } else {
-                            break Err(anyhow::anyhow!("MQTT connection refused: {:?}", connack.code));
+                            break Err(anyhow::anyhow!(
+                                "MQTT connection refused: {:?}",
+                                connack.code
+                            ));
                         }
                     }
                     Err(e) => {
@@ -177,10 +203,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "localhost");
         assert_eq!(port, 1883);
         assert_eq!(topic, "wx/live");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -190,10 +218,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);
         assert_eq!(topic, "weather/data");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -203,10 +233,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "localhost");
         assert_eq!(port, 1883);
         assert_eq!(topic, "wx/live");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -217,10 +249,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "localhost");
         assert_eq!(port, 1883);
         assert_eq!(topic, "custom/topic");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -232,10 +266,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "mqtt.example.com");
         assert_eq!(port, 8883);
         assert_eq!(topic, "sensors/weather");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -246,10 +282,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "mqtt.example.com");
         assert_eq!(port, 1883);
         assert_eq!(topic, "weather");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -259,10 +297,12 @@ mod tests {
             ..Default::default()
         };
 
-        let (host, port, topic) = config.get_connection_info().unwrap();
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
         assert_eq!(host, "mqtt.example.com");
         assert_eq!(port, 1883);
         assert_eq!(topic, "wx/live");
+        assert!(username.is_none());
+        assert!(password.is_none());
     }
 
     #[test]
@@ -294,5 +334,71 @@ mod tests {
             ..Default::default()
         };
         assert!(config.get_connection_info().is_err());
+    }
+
+    #[test]
+    fn test_parse_connection_string_with_credentials() {
+        let config = MqttConfig {
+            connection_string: Some("mqtt://myuser:mypass@localhost:1883/wx/live".to_string()),
+            ..Default::default()
+        };
+
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
+        assert_eq!(host, "localhost");
+        assert_eq!(port, 1883);
+        assert_eq!(topic, "wx/live");
+        assert_eq!(username, Some("myuser".to_string()));
+        assert_eq!(password, Some("mypass".to_string()));
+    }
+
+    #[test]
+    fn test_parse_connection_string_username_only() {
+        let config = MqttConfig {
+            connection_string: Some("mqtt://myuser@localhost:1883/wx/live".to_string()),
+            ..Default::default()
+        };
+
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
+        assert_eq!(host, "localhost");
+        assert_eq!(port, 1883);
+        assert_eq!(topic, "wx/live");
+        assert_eq!(username, Some("myuser".to_string()));
+        assert!(password.is_none());
+    }
+
+    #[test]
+    fn test_connection_string_overrides_config_credentials() {
+        let config = MqttConfig {
+            connection_string: Some("mqtt://urluser:urlpass@localhost:1883/wx/live".to_string()),
+            username: Some("configuser".to_string()),
+            password: Some("configpass".to_string()),
+            ..Default::default()
+        };
+
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
+        assert_eq!(host, "localhost");
+        assert_eq!(port, 1883);
+        assert_eq!(topic, "wx/live");
+        assert_eq!(username, Some("urluser".to_string()));
+        assert_eq!(password, Some("urlpass".to_string()));
+    }
+
+    #[test]
+    fn test_connection_from_fields_with_credentials() {
+        let config = MqttConfig {
+            host: Some("mqtt.example.com".to_string()),
+            port: Some(8883),
+            topic: Some("sensors/weather".to_string()),
+            username: Some("testuser".to_string()),
+            password: Some("testpass".to_string()),
+            ..Default::default()
+        };
+
+        let (host, port, topic, username, password) = config.get_connection_info().unwrap();
+        assert_eq!(host, "mqtt.example.com");
+        assert_eq!(port, 8883);
+        assert_eq!(topic, "sensors/weather");
+        assert_eq!(username, Some("testuser".to_string()));
+        assert_eq!(password, Some("testpass".to_string()));
     }
 }
