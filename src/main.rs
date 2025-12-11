@@ -120,6 +120,9 @@ async fn main() -> Result<()> {
     if db_writer.is_some() {
         println!("Database logging: ENABLED");
     }
+    if mqtt_publisher.is_some() {
+        println!("MQTT publishing: ENABLED");
+    }
     println!("Press Ctrl+C to stop\n");
 
     loop {
@@ -131,6 +134,17 @@ async fn main() -> Result<()> {
                 if let Some(ref writer) = db_writer {
                     if let Err(e) = writer.insert_data(&data, &timestamp).await {
                         eprintln!("Database write error: {}", e);
+                    }
+                }
+
+                // Publish to MQTT if configured
+                if let Some(ref publisher) = mqtt_publisher {
+                    let json_data = serde_json::json!({
+                        "timestamp": timestamp.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                        "data": data
+                    });
+                    if let Err(e) = publisher.publish(&json_data.to_string()).await {
+                        eprintln!("MQTT publish error: {}", e);
                     }
                 }
 
