@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
-use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
+use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS, TlsConfiguration, Transport};
 use serde::Deserialize;
+use std::fs;
 use std::time::Duration;
 
 /// MQTT connection information: (host, port, topic, username, password)
@@ -15,6 +16,12 @@ pub struct MqttConfig {
     pub client_id: Option<String>,
     pub username: Option<String>,
     pub password: Option<String>,
+    /// Path to CA certificate file for TLS
+    pub ca_cert: Option<String>,
+    /// Path to client certificate file for TLS
+    pub client_cert: Option<String>,
+    /// Path to client key file for TLS
+    pub client_key: Option<String>,
 }
 
 impl MqttConfig {
@@ -27,6 +34,9 @@ impl MqttConfig {
             client_id: None,
             username: None,
             password: None,
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
         }
     }
 
@@ -110,11 +120,20 @@ impl MqttPublisher {
         let (host, port, topic, username, password) = config.get_connection_info()?;
         let client_id = config.get_client_id();
 
-        let mut mqtt_options = MqttOptions::new(client_id, host, port);
+        let mut mqtt_options = MqttOptions::new(client_id, host.clone(), port);
         mqtt_options.set_keep_alive(Duration::from_secs(30));
 
         if let (Some(username), Some(password)) = (username, password) {
             mqtt_options.set_credentials(username, password);
+        }
+
+        // Configure TLS if certificates are provided or if using mqtts scheme
+        if let Some(conn_str) = &config.connection_string {
+            if conn_str.starts_with("mqtts://") || config.ca_cert.is_some() {
+                Self::configure_tls(&mut mqtt_options, config)?;
+            }
+        } else if config.ca_cert.is_some() {
+            Self::configure_tls(&mut mqtt_options, config)?;
         }
 
         let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
@@ -166,6 +185,68 @@ impl MqttPublisher {
             Ok(Err(e)) => Err(e),
             Err(_) => Err(anyhow::anyhow!("MQTT connection timeout after 5 seconds")),
         }
+    }
+
+    fn configure_tls(mqtt_options: &mut MqttOptions, config: &MqttConfig) -> Result<()> {
+        use rustls::pki_types::CertificateDer;
+        use std::io::BufReader;
+
+        let mut root_store = rustls::RootCertStore::empty();
+
+        // Load CA certificate if provided
+        if let Some(ca_path) = &config.ca_cert {
+            let ca_file = fs::File::open(ca_path)
+                .context(format!("Failed to open CA certificate from {}", ca_path))?;
+            let mut ca_reader = BufReader::new(ca_file);
+
+            let certs = rustls_pemfile::certs(&mut ca_reader)
+                .collect::<Result<Vec<_>, _>>()
+                .context("Failed to parse CA certificate")?;
+
+            for cert in certs {
+                root_store
+                    .add(cert)
+                    .context("Failed to add CA certificate to root store")?;
+            }
+        } else {
+            // Use system root certificates from webpki-roots
+            root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+        }
+
+        let config_builder = rustls::ClientConfig::builder().with_root_certificates(root_store);
+
+        // Load client certificate and key if provided
+        let tls_config =
+            if let (Some(cert_path), Some(key_path)) = (&config.client_cert, &config.client_key) {
+                let cert_file = fs::File::open(cert_path).context(format!(
+                    "Failed to open client certificate from {}",
+                    cert_path
+                ))?;
+                let mut cert_reader = BufReader::new(cert_file);
+
+                let certs: Vec<CertificateDer> = rustls_pemfile::certs(&mut cert_reader)
+                    .collect::<Result<Vec<_>, _>>()
+                    .context("Failed to parse client certificate")?;
+
+                let key_file = fs::File::open(key_path)
+                    .context(format!("Failed to open client key from {}", key_path))?;
+                let mut key_reader = BufReader::new(key_file);
+
+                let key = rustls_pemfile::private_key(&mut key_reader)
+                    .context("Failed to parse client key")?
+                    .context("No private key found in file")?;
+
+                config_builder
+                    .with_client_auth_cert(certs, key)
+                    .context("Failed to configure client authentication")?
+            } else {
+                config_builder.with_no_client_auth()
+            };
+
+        mqtt_options.set_transport(Transport::Tls(TlsConfiguration::Rustls(
+            std::sync::Arc::new(tls_config),
+        )));
+        Ok(())
     }
 
     pub async fn publish(&self, payload: &str) -> Result<()> {

@@ -38,6 +38,26 @@ pub struct DatabaseConfig {
     /// Table name (default: "wx_records")
     #[serde(default = "default_table_name")]
     pub table_name: String,
+
+    /// Path to CA certificate file for TLS
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ca_cert: Option<String>,
+
+    /// Path to client certificate file for TLS
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_cert: Option<String>,
+
+    /// Path to client key file for TLS
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_key: Option<String>,
+
+    /// Whether to require TLS (default: false)
+    #[serde(default)]
+    pub require_tls: bool,
+
+    /// Skip SSL certificate verification (default: false)
+    #[serde(default)]
+    pub skip_ssl_verify: bool,
 }
 
 fn default_table_name() -> String {
@@ -78,10 +98,45 @@ impl DatabaseConfig {
             _ => 5432,
         });
 
-        Ok(format!(
+        let mut conn_str = format!(
             "{}://{}:{}@{}:{}/{}",
             db_type, username, password, host, port, database
-        ))
+        );
+
+        // Append TLS parameters if configured
+        let mut params = Vec::new();
+
+        if self.require_tls {
+            params.push("sslmode=require".to_string());
+        }
+
+        if self.skip_ssl_verify {
+            // PostgreSQL uses sslmode=require with verify disabled
+            // MySQL uses ssl-mode=REQUIRED with verify disabled
+            if db_type == "postgres" {
+                params.push("sslmode=require".to_string());
+            }
+            params.push("ssl-verify=false".to_string());
+        }
+
+        if let Some(ca_cert) = &self.ca_cert {
+            params.push(format!("sslrootcert={}", ca_cert));
+        }
+
+        if let Some(client_cert) = &self.client_cert {
+            params.push(format!("sslcert={}", client_cert));
+        }
+
+        if let Some(client_key) = &self.client_key {
+            params.push(format!("sslkey={}", client_key));
+        }
+
+        if !params.is_empty() {
+            conn_str.push('?');
+            conn_str.push_str(&params.join("&"));
+        }
+
+        Ok(conn_str)
     }
 }
 
@@ -353,6 +408,11 @@ mod tests {
             password: None,
             database: None,
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -370,6 +430,11 @@ mod tests {
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -387,6 +452,11 @@ mod tests {
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -404,6 +474,11 @@ mod tests {
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -421,6 +496,11 @@ mod tests {
             password: Some("pass".to_string()),
             database: Some("mydb".to_string()),
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let conn_str = config.build_connection_string().unwrap();
@@ -438,6 +518,11 @@ mod tests {
             password: None,
             database: None,
             table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: false,
         };
 
         let result = config.build_connection_string();
@@ -446,5 +531,51 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("Database type must be specified"));
+    }
+
+    #[test]
+    fn test_build_connection_string_with_skip_ssl_verify_postgres() {
+        let config = DatabaseConfig {
+            connection_string: None,
+            db_type: Some("postgres".to_string()),
+            host: Some("localhost".to_string()),
+            port: Some(5432),
+            username: Some("user".to_string()),
+            password: Some("pass".to_string()),
+            database: Some("mydb".to_string()),
+            table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: true,
+        };
+
+        let conn_str = config.build_connection_string().unwrap();
+        assert!(conn_str.contains("sslmode=require"));
+        assert!(conn_str.contains("ssl-verify=false"));
+    }
+
+    #[test]
+    fn test_build_connection_string_with_skip_ssl_verify_mysql() {
+        let config = DatabaseConfig {
+            connection_string: None,
+            db_type: Some("mysql".to_string()),
+            host: Some("localhost".to_string()),
+            port: Some(3306),
+            username: Some("user".to_string()),
+            password: Some("pass".to_string()),
+            database: Some("mydb".to_string()),
+            table_name: "wx_records".to_string(),
+            ca_cert: None,
+            client_cert: None,
+            client_key: None,
+            require_tls: false,
+            skip_ssl_verify: true,
+        };
+
+        let conn_str = config.build_connection_string().unwrap();
+        assert!(conn_str.contains("ssl-verify=false"));
+        assert!(!conn_str.contains("sslmode=require")); // MySQL doesn't use sslmode
     }
 }
