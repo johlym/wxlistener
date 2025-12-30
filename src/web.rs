@@ -179,6 +179,15 @@ pub struct WebServerConfig {
     pub interval: u64,
 }
 
+/// Spawns the web server as a background task
+pub fn run_web_server_background(config: WebServerConfig, gw_ip: String, gw_port: u16) {
+    tokio::spawn(async move {
+        if let Err(e) = run_web_server(config, gw_ip, gw_port).await {
+            eprintln!("✗ Web server error: {}", e);
+        }
+    });
+}
+
 pub async fn run_web_server(
     config: WebServerConfig,
     gw_ip: String,

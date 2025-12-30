@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::database::DatabaseConfig;
+use crate::http_output::HttpConfig;
 use crate::mqtt::MqttConfig;
 
 /// GW1000/Ecowitt Gateway Weather Station Listener
@@ -63,6 +64,8 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mqtt: Option<MqttConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http: Option<HttpConfig>,
 }
 
 fn default_port() -> u16 {
@@ -123,6 +126,22 @@ impl Args {
             let config: Config =
                 toml::from_str(&config_str).context("Failed to parse config file")?;
             Ok(config.mqtt)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Get HTTP configuration from config file or environment variables
+    pub fn get_http_config(&self) -> Result<Option<HttpConfig>> {
+        if let Some(config_path) = &self.config {
+            let config_str = fs::read_to_string(config_path)
+                .context(format!("Failed to read config file: {:?}", config_path))?;
+            let config: Config =
+                toml::from_str(&config_str).context("Failed to parse config file")?;
+            Ok(config.http)
+        } else if std::env::var("WXLISTENER_HTTP_URL").is_ok() {
+            // Create config from environment variables
+            Ok(Some(HttpConfig::default()))
         } else {
             Ok(None)
         }

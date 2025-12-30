@@ -2,6 +2,7 @@ pub mod client;
 pub mod config;
 pub mod database;
 pub mod decoder;
+pub mod http_output;
 pub mod mqtt;
 pub mod output;
 pub mod protocol;

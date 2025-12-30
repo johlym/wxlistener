@@ -2,6 +2,7 @@ mod client;
 mod config;
 mod database;
 mod decoder;
+mod http_output;
 mod mqtt;
 mod output;
 mod protocol;
@@ -15,9 +16,10 @@ use std::time::Duration;
 use client::GW1000Client;
 use config::Args;
 use database::DatabaseWriter;
+use http_output::HttpPublisher;
 use mqtt::MqttPublisher;
 use output::print_livedata;
-use web::{run_web_server, WebServerConfig};
+use web::{run_web_server_background, WebServerConfig};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -46,16 +48,6 @@ async fn main() -> Result<()> {
             std::process::exit(1);
         }
     };
-
-    // Check if web mode is enabled
-    if args.web {
-        let web_config = WebServerConfig {
-            ip: args.web_host.clone(),
-            port: args.web_port,
-            interval: args.continuous,
-        };
-        return run_web_server(web_config, ip, port).await;
-    }
 
     let client = GW1000Client::new(ip.clone(), port);
 
@@ -93,6 +85,23 @@ async fn main() -> Result<()> {
         None
     };
 
+    // Initialize HTTP publisher if configured
+    let http_publisher = if let Some(http_config) = args.get_http_config()? {
+        match HttpPublisher::new(&http_config).await {
+            Ok(publisher) => {
+                println!("✓ HTTP endpoint configured (url: {})", publisher.url());
+                Some(publisher)
+            }
+            Err(e) => {
+                eprintln!("✗ HTTP configuration failed: {}", e);
+                eprintln!("  Cannot continue with HTTP as it is currently configured.");
+                std::process::exit(1);
+            }
+        }
+    } else {
+        None
+    };
+
     println!("============================================================");
     println!("GW1000/Ecowitt Gateway Weather Station Listener");
     println!("============================================================");
@@ -122,6 +131,21 @@ async fn main() -> Result<()> {
     if mqtt_publisher.is_some() {
         println!("MQTT publishing: ENABLED");
     }
+    if http_publisher.is_some() {
+        println!("HTTP publishing: ENABLED");
+    }
+
+    // Start web server in background if enabled
+    if args.web {
+        let web_config = WebServerConfig {
+            ip: args.web_host.clone(),
+            port: args.web_port,
+            interval: args.continuous,
+        };
+        run_web_server_background(web_config, ip.clone(), port);
+        println!("Web server: ENABLED (http://{}:{})", args.web_host, args.web_port);
+    }
+
     println!("Press Ctrl+C to stop\n");
 
     loop {
@@ -151,8 +175,17 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Display output only if no MQTT or database is configured
-                if db_writer.is_none() && mqtt_publisher.is_none() {
+                // Publish to HTTP endpoint if configured
+                if let Some(ref publisher) = http_publisher {
+                    if let Err(e) = publisher.publish(&data, &timestamp).await {
+                        eprintln!("✗ HTTP publish error: {}", e);
+                        eprintln!("  Cannot continue with HTTP configuration.");
+                        std::process::exit(1);
+                    }
+                }
+
+                // Display output only if no output sink is configured
+                if db_writer.is_none() && mqtt_publisher.is_none() && http_publisher.is_none() {
                     if args.format == "json" {
                         println!("{}", serde_json::to_string_pretty(&data)?);
                     } else {

@@ -42,6 +42,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - [Database (structure and storage)](docs/database.md)
 - [Docker support](docs/docker.md)
 - [Fuzzing](docs/fuzzing.md)
+- [HTTP Endpoint Publishing](docs/http-output.md) - POST data to HTTP endpoints
 - [MQTT Integration](docs/mqtt.md) - Publish data to MQTT brokers
 - [Proxmox LXC Deployment](docs/proxmox.md) - Deploy in Proxmox containers
 - [Releasing](docs/releasing.md)
@@ -58,13 +59,14 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **Web interface** - Real-time browser dashboard with WebSocket updates
 - **Database support** - Store data in PostgreSQL or MySQL databases
 - **MQTT publishing** - Publish data to MQTT brokers for home automation
+- **HTTP endpoint publishing** - POST weather data to custom HTTP endpoints
 - **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
 - **Docker support** - Run in containers for easy deployment
 
 ## TODO
 
-- [ ] Support sending metrics to a third party API endpoint
-- [ ] Prescribe the format for said metrics-sending
+- [x] Support sending metrics to a third party API endpoint
+- [x] Prescribe the format for said metrics-sending
 
 ## Installation
 
@@ -249,6 +251,12 @@ connection_string = "mqtt://localhost:1883/wx/live"
 # topic = "wx/live"        # default: wx/live
 # username = "mqtt_user"   # optional
 # password = "mqtt_pass"   # optional
+
+# Optional: HTTP endpoint configuration
+[http]
+url = "https://example.com/api/weather"
+timeout = 10              # optional, default: 10 seconds
+authorization = "Bearer your-token"  # optional
 ```
 
 Then run:
@@ -338,6 +346,54 @@ Data is published in JSON format:
 ```
 
 See the [MQTT documentation](docs/mqtt.md) for detailed configuration, integration examples, and troubleshooting.
+
+#### HTTP Endpoint Configuration
+
+wxlistener can POST weather data to any HTTP endpoint in a structured JSON format, useful for custom APIs, cloud services, or data collection endpoints.
+
+**Config File**
+
+```toml
+[http]
+url = "https://example.com/api/weather"   # required
+timeout = 10                               # optional, default: 10 seconds
+authorization = "Bearer your-token-here"  # optional
+```
+
+**Environment Variables**
+
+```bash
+export WXLISTENER_HTTP_URL="https://example.com/api/weather"
+export WXLISTENER_HTTP_AUTH="Bearer your-token-here"  # optional
+```
+
+**Message Format**
+
+Data is POSTed as JSON with raw numeric values (no units):
+
+```json
+{
+  "weather_measurement": {
+    "reading_date_time": "2025-12-10T15:30:45.123Z",
+    "barometer_abs": 1013.25,
+    "barometer_rel": 1010.0,
+    "day_max_wind": 12.5,
+    "gust_speed": 8.2,
+    "humidity": 65,
+    "light": 50000.0,
+    "rain_day": 2.5,
+    "rain_event": 1.0,
+    "rain_rate": 0.5,
+    "temperature": 22.5,
+    "uv": 5,
+    "uvi": 3,
+    "wind_dir": 180,
+    "wind_speed": 5.5
+  }
+}
+```
+
+See the [HTTP Output documentation](docs/http-output.md) for detailed configuration and integration examples.
 
 ## Output Example
 

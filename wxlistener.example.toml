@@ -55,3 +55,10 @@ port = 45000
 # ca_cert = "/path/to/ca-certificate.crt"   # CA certificate for server verification
 # client_cert = "/path/to/client-cert.crt"  # Client certificate for mutual TLS
 # client_key = "/path/to/client-key.key"    # Client private key for mutual TLS
+
+# Optional: HTTP endpoint configuration
+# Uncomment and configure to enable HTTP POST publishing
+# [http]
+# url = "https://example.com/api/weather"   # HTTP endpoint URL (REQUIRED)
+# timeout = 10                               # Request timeout in seconds (optional, default: 10)
+# authorization = "Bearer your-token-here"  # Authorization header (optional)
