@@ -2,8 +2,11 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::time;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct HttpConfig {
@@ -62,7 +65,7 @@ pub struct WeatherPayload {
     pub weather_measurement: WeatherMeasurement,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct WeatherMeasurement {
     pub reading_date_time: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,10 +121,18 @@ impl WeatherMeasurement {
     }
 }
 
+/// A queued payload waiting to be sent
+#[derive(Debug, Clone, Serialize)]
+struct QueuedPayload {
+    weather_measurement: WeatherMeasurement,
+}
+
 pub struct HttpPublisher {
     client: Client,
     url: String,
     authorization: Option<String>,
+    queue: Arc<Mutex<VecDeque<QueuedPayload>>>,
+    is_draining: Arc<Mutex<bool>>,
 }
 
 impl HttpPublisher {
@@ -138,24 +149,20 @@ impl HttpPublisher {
         // Validate URL format
         reqwest::Url::parse(&url).context("Invalid HTTP endpoint URL")?;
 
-        Ok(Self {
+        let publisher = Self {
             client,
             url,
             authorization,
-        })
-    }
-
-    pub async fn publish(
-        &self,
-        data: &HashMap<String, f64>,
-        timestamp: &DateTime<Utc>,
-    ) -> Result<()> {
-        let measurement = WeatherMeasurement::from_data(data, timestamp);
-        let payload = WeatherPayload {
-            weather_measurement: measurement,
+            queue: Arc::new(Mutex::new(VecDeque::new())),
+            is_draining: Arc::new(Mutex::new(false)),
         };
 
-        let mut request = self.client.post(&self.url).json(&payload);
+        Ok(publisher)
+    }
+
+    /// Attempt to send a payload to the HTTP endpoint
+    async fn try_send(&self, payload: &QueuedPayload) -> Result<()> {
+        let mut request = self.client.post(&self.url).json(payload);
 
         if let Some(auth) = &self.authorization {
             request = request.header("Authorization", auth);
@@ -172,8 +179,119 @@ impl HttpPublisher {
         Ok(())
     }
 
+    /// Start the background queue drain task
+    fn start_drain_task(&self) {
+        let client = self.client.clone();
+        let url = self.url.clone();
+        let authorization = self.authorization.clone();
+        let queue = self.queue.clone();
+        let is_draining = self.is_draining.clone();
+
+        tokio::spawn(async move {
+            loop {
+                // Check if there are items to drain
+                let payload = {
+                    let q = queue.lock().await;
+                    if q.is_empty() {
+                        *is_draining.lock().await = false;
+                        break;
+                    }
+                    q.front().cloned()
+                };
+
+                if let Some(payload) = payload {
+                    // Try to send
+                    let mut request = client.post(&url).json(&payload);
+                    if let Some(auth) = &authorization {
+                        request = request.header("Authorization", auth);
+                    }
+
+                    match request.send().await {
+                        Ok(response) if response.status().is_success() => {
+                            // Success - remove from queue
+                            let mut q = queue.lock().await;
+                            q.pop_front();
+                            let remaining = q.len();
+                            drop(q);
+                            
+                            if remaining > 0 {
+                                println!("  ✓ HTTP queue: sent 1 record ({} remaining)", remaining);
+                            } else {
+                                println!("  ✓ HTTP queue: emptied (all records sent)");
+                            }
+                        }
+                        Ok(response) => {
+                            // Server error - wait and retry
+                            eprintln!(
+                                "  ⚠ HTTP queue: server returned {}, retrying in 1s...",
+                                response.status()
+                            );
+                        }
+                        Err(e) => {
+                            // Connection error - wait and retry
+                            eprintln!("  ⚠ HTTP queue: connection failed ({}), retrying in 1s...", e);
+                        }
+                    }
+                }
+
+                // Wait 1 second before next attempt
+                time::sleep(Duration::from_secs(1)).await;
+            }
+        });
+    }
+
+    /// Publish weather data to the HTTP endpoint
+    /// If the endpoint is unreachable, data is queued for later delivery
+    pub async fn publish(
+        &self,
+        data: &HashMap<String, f64>,
+        timestamp: &DateTime<Utc>,
+    ) {
+        let measurement = WeatherMeasurement::from_data(data, timestamp);
+        let payload = QueuedPayload {
+            weather_measurement: measurement,
+        };
+
+        // Check if we're currently draining the queue
+        let is_draining = *self.is_draining.lock().await;
+        
+        if is_draining {
+            // Queue is being drained, add to end of queue
+            let mut q = self.queue.lock().await;
+            q.push_back(payload);
+            println!("  → HTTP: queued record ({} in queue)", q.len());
+            return;
+        }
+
+        // Try to send directly
+        match self.try_send(&payload).await {
+            Ok(()) => {
+                println!("  ✓ HTTP: sent record ({})", timestamp.to_rfc3339_opts(chrono::SecondsFormat::Micros, false));
+            }
+            Err(e) => {
+                // Failed - add to queue and start drain task
+                eprintln!("  ⚠ HTTP publish failed: {}", e);
+                let mut q = self.queue.lock().await;
+                q.push_back(payload);
+                let queue_len = q.len();
+                drop(q);
+
+                println!("  → HTTP: queued record ({} in queue), will retry...", queue_len);
+
+                // Start drain task if not already running
+                *self.is_draining.lock().await = true;
+                self.start_drain_task();
+            }
+        }
+    }
+
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    /// Get current queue length
+    pub async fn queue_len(&self) -> usize {
+        self.queue.lock().await.len()
     }
 }
 

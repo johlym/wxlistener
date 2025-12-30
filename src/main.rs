@@ -175,13 +175,9 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Publish to HTTP endpoint if configured
+                // Publish to HTTP endpoint if configured (queues on failure)
                 if let Some(ref publisher) = http_publisher {
-                    if let Err(e) = publisher.publish(&data, &timestamp).await {
-                        eprintln!("✗ HTTP publish error: {}", e);
-                        eprintln!("  Cannot continue with HTTP configuration.");
-                        std::process::exit(1);
-                    }
+                    publisher.publish(&data, &timestamp).await;
                 }
 
                 // Display output only if no output sink is configured
