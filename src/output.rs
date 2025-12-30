@@ -26,6 +26,7 @@ pub fn format_value(key: &str, value: f64) -> String {
         k if k.contains("temp") => format!("{:.1}°C", value),
         k if k.contains("humid") => format!("{}%", value as i32),
         k if k.contains("barometer") => format!("{:.1} hPa", value),
+        "wind_dir" => format!("{}°", value as i32),
         k if k.contains("wind") || k.contains("gust") => format!("{:.1} m/s", value),
         k if k.contains("rain") => format!("{:.1} mm", value),
         "light" => format!("{:.1} lux", value),
@@ -63,6 +64,13 @@ mod tests {
         assert_eq!(format_value("wind_speed", 12.5), "12.5 m/s");
         assert_eq!(format_value("gust_speed", 25.0), "25.0 m/s");
         assert_eq!(format_value("day_max_wind", 30.5), "30.5 m/s");
+    }
+
+    #[test]
+    fn test_format_value_wind_dir() {
+        assert_eq!(format_value("wind_dir", 180.0), "180°");
+        assert_eq!(format_value("wind_dir", 0.0), "0°");
+        assert_eq!(format_value("wind_dir", 359.0), "359°");
     }
 
     #[test]
