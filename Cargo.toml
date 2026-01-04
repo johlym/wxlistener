@@ -9,7 +9,7 @@ readme = "README.md"
 
 [package.metadata.deb]
 maintainer = "Johnathan Lyman <johnathan@leahillwx.org>"
-copyright = "2024, Johnathan Lyman <johnathan@leahillwx.org>"
+copyright = "2026, Johnathan Lyman <johnathan@leahillwx.org>"
 depends = "$auto, systemd"
 section = "utils"
 priority = "optional"
