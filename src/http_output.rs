@@ -169,7 +169,10 @@ impl HttpPublisher {
             request = request.header("Authorization", auth);
         }
 
-        let response = request.send().await.context("Failed to send HTTP request")?;
+        let response = request
+            .send()
+            .await
+            .context("Failed to send HTTP request")?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -214,7 +217,7 @@ impl HttpPublisher {
                             q.pop_front();
                             let remaining = q.len();
                             drop(q);
-                            
+
                             if remaining > 0 {
                                 println!("  ✓ HTTP queue: sent 1 record ({} remaining)", remaining);
                             } else {
@@ -230,7 +233,10 @@ impl HttpPublisher {
                         }
                         Err(e) => {
                             // Connection error - wait and retry
-                            eprintln!("  ⚠ HTTP queue: connection failed ({}), retrying in 1s...", e);
+                            eprintln!(
+                                "  ⚠ HTTP queue: connection failed ({}), retrying in 1s...",
+                                e
+                            );
                         }
                     }
                 }
@@ -243,11 +249,7 @@ impl HttpPublisher {
 
     /// Publish weather data to the HTTP endpoint
     /// If the endpoint is unreachable, data is queued for later delivery
-    pub async fn publish(
-        &self,
-        data: &HashMap<String, f64>,
-        timestamp: &DateTime<Utc>,
-    ) {
+    pub async fn publish(&self, data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
         let measurement = WeatherMeasurement::from_data(data, timestamp);
         let payload = QueuedPayload {
             weather_measurement: measurement,
@@ -255,7 +257,7 @@ impl HttpPublisher {
 
         // Check if we're currently draining the queue
         let is_draining = *self.is_draining.lock().await;
-        
+
         if is_draining {
             // Queue is being drained, add to end of queue
             let mut q = self.queue.lock().await;
@@ -267,7 +269,10 @@ impl HttpPublisher {
         // Try to send directly
         match self.try_send(&payload).await {
             Ok(()) => {
-                println!("  ✓ HTTP: sent record ({})", timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
+                println!(
+                    "  ✓ HTTP: sent record ({})",
+                    timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+                );
             }
             Err(e) => {
                 // Failed - add to queue and start drain task
@@ -277,7 +282,10 @@ impl HttpPublisher {
                 let queue_len = q.len();
                 drop(q);
 
-                println!("  → HTTP: queued record ({} in queue), will retry...", queue_len);
+                println!(
+                    "  → HTTP: queued record ({} in queue), will retry...",
+                    queue_len
+                );
 
                 // Start drain task if not already running
                 *self.is_draining.lock().await = true;

@@ -143,7 +143,10 @@ async fn main() -> Result<()> {
             interval: args.continuous,
         };
         run_web_server_background(web_config, ip.clone(), port);
-        println!("Web server: ENABLED (http://{}:{})", args.web_host, args.web_port);
+        println!(
+            "Web server: ENABLED (http://{}:{})",
+            args.web_host, args.web_port
+        );
     }
 
     println!("Press Ctrl+C to stop\n");
