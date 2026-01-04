@@ -175,7 +175,7 @@ async fn main() -> Result<()> {
                     }
                 }
 
-                // Publish to HTTP endpoint if configured (queues on failure)
+                // Publish to HTTP endpoint if configured
                 if let Some(ref publisher) = http_publisher {
                     publisher.publish(&data, &timestamp).await;
                 }

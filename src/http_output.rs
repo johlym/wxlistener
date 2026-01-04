@@ -266,7 +266,7 @@ impl HttpPublisher {
         // Try to send directly
         match self.try_send(&payload).await {
             Ok(()) => {
-                println!("  ✓ HTTP: sent record ({})", timestamp.to_rfc3339_opts(chrono::SecondsFormat::Micros, false));
+                println!("  ✓ HTTP: sent record ({})", timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
             }
             Err(e) => {
                 // Failed - add to queue and start drain task
