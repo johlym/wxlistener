@@ -1,0 +1,15 @@
+[Unit]
+Description=WXListener Weather Station Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=wxlistener
+Group=wxlistener
+ExecStart=/usr/bin/wxlistener --config /etc/wxlistener/wxlistener.toml
+Restart=on-failure
+RestartSec=5s
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Create wxlistener user if it doesn't exist
+        if ! getent passwd wxlistener >/dev/null; then
+            adduser --system --quiet --home /var/lib/wxlistener --no-create-home \
+                --shell /bin/false --group --gecos "WXListener Weather Station Monitor" wxlistener
+        fi
+
+        # Create configuration directory
+        install -d -m 755 -o wxlistener -g wxlistener /etc/wxlistener
+        install -d -m 755 -o wxlistener -g wxlistener /var/lib/wxlistener
+
+        # Set permissions on config file if it exists
+        if [ -f /etc/wxlistener/wxlistener.toml ]; then
+            chown root:wxlistener /etc/wxlistener/wxlistener.toml
+            chmod 640 /etc/wxlistener/wxlistener.toml
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

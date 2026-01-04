@@ -74,6 +74,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install cargo-deb
+        if: runner.os == 'Linux'
+        run: cargo install cargo-deb
+
       - name: Install cross (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
@@ -86,6 +90,12 @@ jobs:
       - name: Build (other targets)
         if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build Debian Package
+        if: runner.os == 'Linux'
+        run: |
+          cargo deb --target ${{ matrix.target }} --no-build --no-strip
+          find target -name "*.deb" -exec cp {} ./ \;
 
       - name: Create archive (Unix)
         if: matrix.os != 'windows-latest'
@@ -110,6 +120,7 @@ jobs:
           path: |
             ./${{ matrix.asset_name }}.tar.gz
             ./${{ matrix.asset_name }}.zip
+            ./*.deb
           retention-days: 1
 
   create-release:
@@ -160,7 +171,17 @@ jobs:
           echo "" >> release_notes.md
           echo "Download the appropriate binary for your platform below and extract it." >> release_notes.md
           echo "" >> release_notes.md
-          echo "### Available Platforms" >> release_notes.md
+          echo "### Debian/Ubuntu" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "For Debian-based systems, you can use the \`.deb\` packages:" >> release_notes.md
+          echo "- **amd64 (x86_64)**: \`wxlistener_${VERSION}_amd64.deb\`" >> release_notes.md
+          echo "- **arm64 (RPi 64-bit)**: \`wxlistener_${VERSION}_arm64.deb\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "sudo dpkg -i wxlistener_${VERSION}_amd64.deb" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Other Platforms" >> release_notes.md
           echo "" >> release_notes.md
           echo "- **Linux x86_64**: \`wxlistener-linux-x86_64.tar.gz\`" >> release_notes.md
           echo "- **Linux ARM64**: \`wxlistener-linux-aarch64.tar.gz\`" >> release_notes.md
@@ -186,3 +207,4 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
+            artifacts/**/*.deb

@@ -2,6 +2,25 @@
 name = "wxlistener"
 version = "0.1.16"
 edition = "2021"
+description = "GW1000/Ecowitt Gateway Weather Station Listener"
+license = "MIT"
+repository = "https://github.com/johlym/wxlistener"
+readme = "README.md"
+
+[package.metadata.deb]
+maintainer = "Johnathan Lyman <johnathan@leahillwx.org>"
+copyright = "2024, Johnathan Lyman <johnathan@leahillwx.org>"
+depends = "$auto, systemd"
+section = "utils"
+priority = "optional"
+assets = [
+    ["wxlistener.example.toml", "etc/wxlistener/wxlistener.toml", "644"],
+    ["debian/wxlistener.service", "usr/lib/systemd/system/", "644"],
+]
+maintainer-scripts = "debian"
+conf-files = [
+    "/etc/wxlistener/wxlistener.toml"
+]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
