@@ -61,6 +61,7 @@ impl Default for HttpConfig {
 
 /// Weather measurement payload matching the required schema
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct WeatherPayload {
     pub weather_measurement: WeatherMeasurement,
 }
@@ -290,6 +291,7 @@ impl HttpPublisher {
     }
 
     /// Get current queue length
+    #[allow(dead_code)]
     pub async fn queue_len(&self) -> usize {
         self.queue.lock().await.len()
     }
