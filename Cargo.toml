@@ -14,6 +14,7 @@ depends = "$auto, systemd"
 section = "utils"
 priority = "optional"
 assets = [
+    ["target/release/wxlistener", "opt/wxlistener/wxlistener", "755"],
     ["wxlistener.example.toml", "etc/wxlistener/wxlistener.toml", "644"],
     ["debian/wxlistener.service", "usr/lib/systemd/system/", "644"],
 ]
