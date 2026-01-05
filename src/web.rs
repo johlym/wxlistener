@@ -183,7 +183,7 @@ pub struct WebServerConfig {
 pub fn run_web_server_background(config: WebServerConfig, gw_ip: String, gw_port: u16) {
     tokio::spawn(async move {
         if let Err(e) = run_web_server(config, gw_ip, gw_port).await {
-            eprintln!("✗ Web server error: {}", e);
+            eprintln!("[ERROR] Web server error: {}", e);
         }
     });
 }

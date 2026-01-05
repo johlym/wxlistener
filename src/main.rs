@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
         println!("Creating database table...");
         let writer = DatabaseWriter::new(&db_config).await?;
         writer.create_table().await?;
-        println!("✓ Table '{}' created successfully", db_config.table_name);
+        println!("[OK] Table '{}' created successfully", db_config.table_name);
         return Ok(());
     }
 
@@ -55,11 +55,11 @@ async fn main() -> Result<()> {
     let db_writer = if let Some(db_config) = args.get_database_config()? {
         match DatabaseWriter::new(&db_config).await {
             Ok(writer) => {
-                println!("✓ Connected to database and table verified");
+                println!("[OK] Connected to database and table verified");
                 Some(writer)
             }
             Err(e) => {
-                eprintln!("✗ Database connection failed: {}", e);
+                eprintln!("[ERROR] Database connection failed: {}", e);
                 eprintln!("  Cannot continue with database configuration.");
                 std::process::exit(1);
             }
@@ -72,11 +72,11 @@ async fn main() -> Result<()> {
     let mqtt_publisher = if let Some(mqtt_config) = args.get_mqtt_config()? {
         match MqttPublisher::new(&mqtt_config).await {
             Ok(publisher) => {
-                println!("✓ Connected to MQTT broker (topic: {})", publisher.topic());
+                println!("[OK] Connected to MQTT broker (topic: {})", publisher.topic());
                 Some(publisher)
             }
             Err(e) => {
-                eprintln!("✗ MQTT connection failed: {}", e);
+                eprintln!("[ERROR] MQTT connection failed: {}", e);
                 eprintln!("  Cannot continue with MQTT as it is currently configured.");
                 std::process::exit(1);
             }
@@ -89,11 +89,11 @@ async fn main() -> Result<()> {
     let http_publisher = if let Some(http_config) = args.get_http_config()? {
         match HttpPublisher::new(&http_config).await {
             Ok(publisher) => {
-                println!("✓ HTTP endpoint configured (url: {})", publisher.url());
+                println!("[OK] HTTP endpoint configured (url: {})", publisher.url());
                 Some(publisher)
             }
             Err(e) => {
-                eprintln!("✗ HTTP configuration failed: {}", e);
+                eprintln!("[ERROR] HTTP configuration failed: {}", e);
                 eprintln!("  Cannot continue with HTTP as it is currently configured.");
                 std::process::exit(1);
             }
@@ -111,13 +111,13 @@ async fn main() -> Result<()> {
     // Get device info
     println!("--- Device Information ---");
     match client.get_firmware_version() {
-        Ok(version) => println!("✓ Firmware Version: {}", version),
-        Err(e) => println!("✗ Failed to get firmware: {}", e),
+        Ok(version) => println!("[OK] Firmware Version: {}", version),
+        Err(e) => println!("[ERROR] Failed to get firmware: {}", e),
     }
 
     match client.get_mac_address() {
-        Ok(mac) => println!("✓ MAC Address: {}", mac),
-        Err(e) => println!("✗ Failed to get MAC: {}", e),
+        Ok(mac) => println!("[OK] MAC Address: {}", mac),
+        Err(e) => println!("[ERROR] Failed to get MAC: {}", e),
     }
 
     // Continuous mode (default)
@@ -159,7 +159,7 @@ async fn main() -> Result<()> {
                 // Write to database if configured
                 if let Some(ref writer) = db_writer {
                     if let Err(e) = writer.insert_data(&data, &timestamp).await {
-                        eprintln!("✗ Database write error: {}", e);
+                        eprintln!("[ERROR] Database write error: {}", e);
                         eprintln!("  Cannot continue with database configuration.");
                         std::process::exit(1);
                     }
@@ -172,7 +172,7 @@ async fn main() -> Result<()> {
                         "data": data
                     });
                     if let Err(e) = publisher.publish(&json_data.to_string()).await {
-                        eprintln!("✗ MQTT publish error: {}", e);
+                        eprintln!("[ERROR] MQTT publish error: {}", e);
                         eprintln!("  Cannot continue with MQTT configuration.");
                         std::process::exit(1);
                     }

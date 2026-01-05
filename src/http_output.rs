@@ -219,22 +219,22 @@ impl HttpPublisher {
                             drop(q);
 
                             if remaining > 0 {
-                                println!("  ✓ HTTP queue: sent 1 record ({} remaining)", remaining);
+                                println!("  [OK] HTTP queue: sent 1 record ({} remaining)", remaining);
                             } else {
-                                println!("  ✓ HTTP queue: emptied (all records sent)");
+                                println!("  [OK] HTTP queue: emptied (all records sent)");
                             }
                         }
                         Ok(response) => {
                             // Server error - wait and retry
                             eprintln!(
-                                "  ⚠ HTTP queue: server returned {}, retrying in 1s...",
+                                "  [WARN] HTTP queue: server returned {}, retrying in 1s...",
                                 response.status()
                             );
                         }
                         Err(e) => {
                             // Connection error - wait and retry
                             eprintln!(
-                                "  ⚠ HTTP queue: connection failed ({}), retrying in 1s...",
+                                "  [WARN] HTTP queue: connection failed ({}), retrying in 1s...",
                                 e
                             );
                         }
@@ -262,7 +262,7 @@ impl HttpPublisher {
             // Queue is being drained, add to end of queue
             let mut q = self.queue.lock().await;
             q.push_back(payload);
-            println!("  → HTTP: queued record ({} in queue)", q.len());
+            println!("  [QUEUE] HTTP: queued record ({} in queue)", q.len());
             return;
         }
 
@@ -270,20 +270,20 @@ impl HttpPublisher {
         match self.try_send(&payload).await {
             Ok(()) => {
                 println!(
-                    "  ✓ HTTP: sent record ({})",
+                    "  [OK] HTTP: sent record ({})",
                     timestamp.format("%Y-%m-%d %H:%M:%S UTC")
                 );
             }
             Err(e) => {
                 // Failed - add to queue and start drain task
-                eprintln!("  ⚠ HTTP publish failed: {}", e);
+                eprintln!("  [WARN] HTTP publish failed: {}", e);
                 let mut q = self.queue.lock().await;
                 q.push_back(payload);
                 let queue_len = q.len();
                 drop(q);
 
                 println!(
-                    "  → HTTP: queued record ({} in queue), will retry...",
+                    "  [QUEUE] HTTP: queued record ({} in queue), will retry...",
                     queue_len
                 );
 

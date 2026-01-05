@@ -191,7 +191,7 @@ impl DatabaseWriter {
             if input.is_empty() || input == "y" || input == "yes" {
                 println!("Creating table '{}'...", writer.table_name);
                 writer.create_table().await?;
-                println!("✓ Table '{}' created successfully", writer.table_name);
+                println!("[OK] Table '{}' created successfully", writer.table_name);
             } else {
                 anyhow::bail!(
                     "Table '{}' does not exist. Cannot proceed without it. \
