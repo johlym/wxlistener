@@ -46,6 +46,9 @@ mod tests {
         assert_eq!(format_value("outtemp", 25.5), "25.5°C");
         assert_eq!(format_value("intemp", -10.3), "-10.3°C");
         assert_eq!(format_value("temp_sensor1", 0.0), "0.0°C");
+        assert_eq!(format_value("dewpoint", 15.2), "15.2°C");
+        assert_eq!(format_value("windchill", 5.0), "5.0°C");
+        assert_eq!(format_value("heatindex", 32.5), "32.5°C");
     }
 
     #[test]

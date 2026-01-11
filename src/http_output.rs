@@ -380,6 +380,9 @@ mod tests {
         data.insert("light".to_string(), 50000.0);
         data.insert("uv".to_string(), 5.0);
         data.insert("uvi".to_string(), 3.0);
+        data.insert("dewpoint".to_string(), 15.2);
+        data.insert("windchill".to_string(), 21.5);
+        data.insert("heatindex".to_string(), 28.0);
 
         let timestamp = Utc::now();
         let measurement = WeatherMeasurement::from_data(&data, &timestamp);
@@ -398,6 +401,9 @@ mod tests {
         assert_eq!(measurement.light, Some(50000.0));
         assert_eq!(measurement.uv, Some(5));
         assert_eq!(measurement.uvi, Some(3));
+        assert_eq!(measurement.dewpoint, Some(15.2));
+        assert_eq!(measurement.windchill, Some(21.5));
+        assert_eq!(measurement.heatindex, Some(28.0));
     }
 
     #[test]
@@ -413,6 +419,9 @@ mod tests {
         assert_eq!(measurement.humidity, Some(50));
         assert!(measurement.barometer_abs.is_none());
         assert!(measurement.wind_speed.is_none());
+        assert!(measurement.dewpoint.is_none());
+        assert!(measurement.windchill.is_none());
+        assert!(measurement.heatindex.is_none());
     }
 
     #[test]
