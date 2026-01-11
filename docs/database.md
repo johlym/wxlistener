@@ -81,6 +81,9 @@ The table is created automatically with the following columns:
 | `timestamp`    | TIMESTAMP                 | When the reading was taken         |
 | `intemp`       | DOUBLE                    | Indoor temperature (°C)            |
 | `outtemp`      | DOUBLE                    | Outdoor temperature (°C)           |
+| `dewpoint`     | DOUBLE                    | Dew point (°C)                     |
+| `windchill`    | DOUBLE                    | Wind chill (°C)                    |
+| `heatindex`    | DOUBLE                    | Heat index (°C)                    |
 | `inhumid`      | DOUBLE                    | Indoor humidity (%)                |
 | `outhumid`     | DOUBLE                    | Outdoor humidity (%)               |
 | `absbarometer` | DOUBLE                    | Absolute barometric pressure (hPa) |
@@ -168,6 +171,9 @@ CREATE TABLE IF NOT EXISTS wx_records (
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     intemp DOUBLE PRECISION,
     outtemp DOUBLE PRECISION,
+    dewpoint DOUBLE PRECISION,
+    windchill DOUBLE PRECISION,
+    heatindex DOUBLE PRECISION,
     inhumid DOUBLE PRECISION,
     outhumid DOUBLE PRECISION,
     absbarometer DOUBLE PRECISION,
@@ -199,6 +205,9 @@ CREATE TABLE IF NOT EXISTS wx_records (
     timestamp TIMESTAMP NOT NULL,
     intemp DOUBLE,
     outtemp DOUBLE,
+    dewpoint DOUBLE,
+    windchill DOUBLE,
+    heatindex DOUBLE,
     inhumid DOUBLE,
     outhumid DOUBLE,
     absbarometer DOUBLE,

@@ -68,7 +68,9 @@ Data is POSTed as JSON with the following structure:
     "barometer_abs": float,
     "barometer_rel": float,
     "day_max_wind": float,
+    "dewpoint": float,
     "gust_speed": float,
+    "heatindex": float,
     "humidity": integer,
     "light": float,
     "rain_day": float,
@@ -78,7 +80,8 @@ Data is POSTed as JSON with the following structure:
     "uv": integer,
     "uvi": integer,
     "wind_dir": integer,
-    "wind_speed": float
+    "wind_speed": float,
+    "windchill": float
   }
 }
 ```
@@ -93,9 +96,12 @@ Data is POSTed as JSON with the following structure:
 | `barometer_abs`     | `absbarometer`        | float   | Absolute barometric pressure (hPa)   |
 | `barometer_rel`     | `relbarometer`        | float   | Relative barometric pressure (hPa)   |
 | `day_max_wind`      | `day_max_wind`        | float   | Maximum wind speed today (m/s)       |
+| `dewpoint`          | `dewpoint`            | float   | Dew point (°C)                       |
 | `gust_speed`        | `gust_speed`          | float   | Current wind gust speed (m/s)        |
+| `heatindex`         | `heatindex`           | float   | Heat index (°C)                      |
 | `humidity`          | `outhumid`            | integer | Outdoor humidity (%)                 |
 | `light`             | `light`               | float   | Light intensity (lux)                |
+| `windchill`         | `windchill`           | float   | Wind chill (°C)                      |
 | `rain_day`          | `rain_day`            | float   | Rain today (mm)                      |
 | `rain_event`        | `rain_event`          | float   | Rain since event started (mm)        |
 | `rain_rate`         | `rain_rate`           | float   | Current rain rate (mm/h)             |
@@ -116,9 +122,12 @@ Data is POSTed as JSON with the following structure:
     "barometer_abs": 1013.25,
     "barometer_rel": 1010.0,
     "day_max_wind": 12.5,
+    "dewpoint": 15.2,
     "gust_speed": 8.2,
+    "heatindex": 24.0,
     "humidity": 65,
     "light": 50000.0,
+    "windchill": 21.5,
     "rain_day": 2.5,
     "rain_event": 1.0,
     "rain_rate": 0.5,
