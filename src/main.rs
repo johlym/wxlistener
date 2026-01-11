@@ -72,7 +72,10 @@ async fn main() -> Result<()> {
     let mqtt_publisher = if let Some(mqtt_config) = args.get_mqtt_config()? {
         match MqttPublisher::new(&mqtt_config).await {
             Ok(publisher) => {
-                println!("[OK] Connected to MQTT broker (topic: {})", publisher.topic());
+                println!(
+                    "[OK] Connected to MQTT broker (topic: {})",
+                    publisher.topic()
+                );
                 Some(publisher)
             }
             Err(e) => {

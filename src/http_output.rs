@@ -76,11 +76,17 @@ pub struct WeatherMeasurement {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub day_max_wind: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub dewpoint: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub gust_speed: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heatindex: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub humidity: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub light: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub windchill: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rain_day: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -107,9 +113,12 @@ impl WeatherMeasurement {
             barometer_abs: data.get("absbarometer").copied(),
             barometer_rel: data.get("relbarometer").copied(),
             day_max_wind: data.get("day_max_wind").copied(),
+            dewpoint: data.get("dewpoint").copied(),
             gust_speed: data.get("gust_speed").copied(),
+            heatindex: data.get("heatindex").copied(),
             humidity: data.get("outhumid").map(|v| *v as i32),
             light: data.get("light").copied(),
+            windchill: data.get("windchill").copied(),
             rain_day: data.get("rain_day").copied(),
             rain_event: data.get("rain_event").copied(),
             rain_rate: data.get("rain_rate").copied(),
@@ -219,7 +228,10 @@ impl HttpPublisher {
                             drop(q);
 
                             if remaining > 0 {
-                                println!("  [OK] HTTP queue: sent 1 record ({} remaining)", remaining);
+                                println!(
+                                    "  [OK] HTTP queue: sent 1 record ({} remaining)",
+                                    remaining
+                                );
                             } else {
                                 println!("  [OK] HTTP queue: emptied (all records sent)");
                             }

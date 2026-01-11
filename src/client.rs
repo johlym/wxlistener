@@ -123,6 +123,36 @@ impl GW1000Client {
                         break;
                     }
                 }
+                0x03 => {
+                    // dew point
+                    if index + 2 < data.len() {
+                        let val = decode_temp(&data[index + 1..index + 3]);
+                        result.insert("dewpoint".to_string(), val);
+                        index += 3;
+                    } else {
+                        break;
+                    }
+                }
+                0x04 => {
+                    // wind chill
+                    if index + 2 < data.len() {
+                        let val = decode_temp(&data[index + 1..index + 3]);
+                        result.insert("windchill".to_string(), val);
+                        index += 3;
+                    } else {
+                        break;
+                    }
+                }
+                0x05 => {
+                    // heat index
+                    if index + 2 < data.len() {
+                        let val = decode_temp(&data[index + 1..index + 3]);
+                        result.insert("heatindex".to_string(), val);
+                        index += 3;
+                    } else {
+                        break;
+                    }
+                }
                 0x06 => {
                     // inhumid
                     if index + 1 < data.len() {

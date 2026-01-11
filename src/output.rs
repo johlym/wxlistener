@@ -23,7 +23,9 @@ pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
 
 pub fn format_value(key: &str, value: f64) -> String {
     match key {
-        k if k.contains("temp") => format!("{:.1}°C", value),
+        k if k.contains("temp") || k == "dewpoint" || k == "windchill" || k == "heatindex" => {
+            format!("{:.1}°C", value)
+        }
         k if k.contains("humid") => format!("{}%", value as i32),
         k if k.contains("barometer") => format!("{:.1} hPa", value),
         "wind_dir" => format!("{}°", value as i32),
