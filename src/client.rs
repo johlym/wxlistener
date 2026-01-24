@@ -13,7 +13,7 @@ const CMD_READ_STATION_MAC: u8 = 0x26;
 const CMD_GW1000_LIVEDATA: u8 = 0x27;
 
 // Protocol constants
-const SOCKET_TIMEOUT: Duration = Duration::from_secs(5);
+const SOCKET_TIMEOUT: Duration = Duration::from_secs(16);
 
 pub struct GW1000Client {
     ip: String,

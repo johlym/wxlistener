@@ -325,7 +325,7 @@ pub async fn api_current_handler(
     let mut rx = tx.subscribe();
 
     // Try to receive the latest message with a timeout
-    match tokio::time::timeout(Duration::from_secs(5), rx.recv()).await {
+    match tokio::time::timeout(Duration::from_secs(16), rx.recv()).await {
         Ok(Ok(data)) => {
             // Parse the JSON string and return it
             match serde_json::from_str::<serde_json::Value>(&data) {

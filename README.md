@@ -55,7 +55,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **Fast & efficient** - Written in Rust for maximum performance
 - **Config file or CLI args** - Flexible configuration options
 - **JSON or text output** - Machine-readable or human-friendly
-- **Continuous monitoring** - Poll at regular intervals (default: 5 seconds)
+- **Continuous monitoring** - Poll at regular intervals (default: 16 seconds)
 - **Web interface** - Real-time browser dashboard with WebSocket updates
 - **Database support** - Store data in PostgreSQL or MySQL databases
 - **MQTT publishing** - Publish data to MQTT brokers for home automation
@@ -195,7 +195,7 @@ wxlistener --ip 10.31.100.42 --web --web-host 127.0.0.1
 
 ### Web Interface
 
-The web interface provides a real-time dashboard that automatically updates every 5 seconds via WebSocket:
+The web interface provides a real-time dashboard that automatically updates every 16 seconds via WebSocket:
 
 ```bash
 # Start the web server
@@ -206,7 +206,7 @@ wxlistener --ip 10.31.100.42 --web
 
 Features:
 
-- **Real-time updates** - Data refreshes automatically every 5 seconds
+- **Real-time updates** - Data refreshes automatically every 16 seconds
 - **WebSocket connection** - Efficient, low-latency updates
 - **REST API** - JSON endpoint at `/api/v1/current.json` for programmatic access
 - **Auto-reconnect** - Automatically reconnects if connection is lost

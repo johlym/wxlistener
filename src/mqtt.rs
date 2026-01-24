@@ -139,7 +139,7 @@ impl MqttPublisher {
 
         // Wait for initial connection confirmation
         let mut connection_confirmed = false;
-        let timeout = tokio::time::timeout(Duration::from_secs(5), async {
+        let timeout = tokio::time::timeout(Duration::from_secs(16), async {
             loop {
                 match eventloop.poll().await {
                     Ok(Event::Incoming(Incoming::ConnAck(connack))) => {
@@ -173,7 +173,7 @@ impl MqttPublisher {
                             }
                             Err(e) => {
                                 eprintln!("MQTT connection error: {}", e);
-                                tokio::time::sleep(Duration::from_secs(5)).await;
+                                tokio::time::sleep(Duration::from_secs(16)).await;
                             }
                             _ => {}
                         }
@@ -182,7 +182,7 @@ impl MqttPublisher {
                 Ok(Self { client, topic })
             }
             Ok(Err(e)) => Err(e),
-            Err(_) => Err(anyhow::anyhow!("MQTT connection timeout after 5 seconds")),
+            Err(_) => Err(anyhow::anyhow!("MQTT connection timeout after 16 seconds")),
         }
     }
 

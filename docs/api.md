@@ -88,7 +88,7 @@ Returns the most recent weather station data.
 
 **Error Responses**:
 
-- **Timeout** (no data available within 5 seconds):
+- **Timeout** (no data available within 16 seconds):
 
   ```json
   {
@@ -279,11 +279,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 There is no explicit rate limiting. However:
 
-- The API waits up to 5 seconds for new data
-- Data is updated based on your configured polling interval (default: 5 seconds)
+- The API waits up to 16 seconds for new data
+- Data is updated based on your configured polling interval (default: 16 seconds)
 - Excessive requests won't get fresher data, just the same cached value
 
-**Recommendation**: Poll at the same interval as your wxlistener configuration (default: 5 seconds) or slower.
+**Recommendation**: Poll at the same interval as your wxlistener configuration (default: 16 seconds) or slower.
 
 ## CORS
 
@@ -297,7 +297,7 @@ CORS (Cross-Origin Resource Sharing) is not currently enabled. If you need to ac
 
 ### "Timeout waiting for data"
 
-**Cause**: No weather data has been received within 5 seconds.
+**Cause**: No weather data has been received within 16 seconds.
 
 **Solutions**:
 

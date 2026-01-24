@@ -340,7 +340,7 @@ GW1000/Ecowitt Gateway Weather Station Listener
 ============================================================
 Target device: 192.168.1.50:45000
 
---- Continuous Mode (every 5 seconds) ---
+--- Continuous Mode (every 16 seconds) ---
 MQTT publishing: ENABLED
 Press Ctrl+C to stop
 ```
@@ -604,7 +604,7 @@ mosquitto_sub -h broker.example.com -t "wx/live" -u username -P password
 
 **Publishing Rate:**
 
-- Matches wxlistener polling interval (default: 5 seconds)
+- Matches wxlistener polling interval (default: 16 seconds)
 - Configurable via `--continuous` flag
 - No additional overhead
 
