@@ -142,6 +142,12 @@ pub fn mock_livedata_response() -> Vec<u8> {
     // 0x07: outhumid = 65%
     data.extend_from_slice(&[0x07, 0x41]);
 
+    // 0x2C: soil_moisture_ch1 = 78%
+    data.extend_from_slice(&[0x2C, 0x4E]);
+
+    // 0x2B: soil_temp_ch1 = 18.5°C (185 = 0x00B9)
+    data.extend_from_slice(&[0x2B, 0x00, 0xB9]);
+
     // Calculate size: cmd(1) + size(2) + data + checksum(1)
     let size = 1 + 2 + data.len() + 1;
 
@@ -157,6 +163,39 @@ pub fn mock_livedata_response() -> Vec<u8> {
     response.push(checksum);
 
     response
+}
+
+/// Helper for CMD_READ_SENSOR_ID_NEW (0x3C) with one active WH51 soil moisture sensor on ch1.
+/// Entry layout: type(1) + id(4) + battery(1) + signal(1).
+/// WH51 ch1 type = 14; battery 15 → 1.5 V; signal = 4.
+pub fn mock_sensor_id_response() -> Vec<u8> {
+    let mut response = vec![
+        0xFF, 0xFF, // Header
+        0x3C, // Command (CMD_READ_SENSOR_ID_NEW)
+    ];
+
+    let mut data = Vec::new();
+    // WH51 channel 1: type=14, id=0x12345678, battery=15 (1.5V), signal=4
+    data.extend_from_slice(&[14, 0x12, 0x34, 0x56, 0x78, 15, 4]);
+    // Disabled WH51 ch2: type=15, id=0xFFFFFFFE, battery=0, signal=0
+    data.extend_from_slice(&[15, 0xFF, 0xFF, 0xFF, 0xFE, 0, 0]);
+
+    let size = 1 + 2 + data.len() + 1;
+    response.push(((size >> 8) & 0xFF) as u8);
+    response.push((size & 0xFF) as u8);
+    response.extend_from_slice(&data);
+
+    let checksum: u8 = response[2..].iter().map(|&b| b as u32).sum::<u32>() as u8;
+    response.push(checksum);
+
+    response
+}
+
+/// Queue livedata + sensor-ID responses in the order get_livedata() will consume them.
+/// Mock server pops LIFO, so sensor-ID is pushed first.
+pub fn queue_livedata_with_battery(server: &MockGW1000Server) {
+    server.add_response(mock_sensor_id_response());
+    server.add_response(mock_livedata_response());
 }
 
 #[cfg(test)]

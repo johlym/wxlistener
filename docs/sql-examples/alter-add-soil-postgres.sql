@@ -1,0 +1,39 @@
+-- Migration: add soil sensor columns to an existing wx_records table (PostgreSQL 11+)
+-- Run once after upgrading wxlistener to a build that emits soil_* fields.
+-- New installs should use postgres.sql instead (columns already included).
+
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch1 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch2 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch3 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch4 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch5 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch6 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch7 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_moisture_ch8 DOUBLE PRECISION;
+
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch1 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch2 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch3 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch4 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch5 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch6 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch7 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_ch8 DOUBLE PRECISION;
+
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch1 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch2 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch3 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch4 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch5 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch6 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch7 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_battery_ch8 DOUBLE PRECISION;
+
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch1 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch2 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch3 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch4 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch5 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch6 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch7 DOUBLE PRECISION;
+ALTER TABLE wx_records ADD COLUMN IF NOT EXISTS soil_temp_battery_ch8 DOUBLE PRECISION;

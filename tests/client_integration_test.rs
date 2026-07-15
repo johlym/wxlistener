@@ -2,7 +2,7 @@
 mod mock_server;
 
 use mock_server::{
-    mock_firmware_response, mock_livedata_response, mock_mac_response, MockGW1000Server,
+    mock_firmware_response, mock_mac_response, queue_livedata_with_battery, MockGW1000Server,
 };
 use wxlistener::client::GW1000Client;
 
@@ -61,8 +61,8 @@ fn test_client_get_livedata() {
     let server = MockGW1000Server::new().unwrap();
     let port = server.port();
 
-    // Add canned response
-    server.add_response(mock_livedata_response());
+    // Livedata + sensor-ID battery responses
+    queue_livedata_with_battery(&server);
 
     // Start server in background
     let _handle = server.start();
@@ -83,10 +83,16 @@ fn test_client_get_livedata() {
     // Check specific fields we know are in the mock response
     assert!(data.contains_key("outtemp"));
     assert!(data.contains_key("outhumid"));
+    assert!(data.contains_key("soil_moisture_ch1"));
+    assert!(data.contains_key("soil_temp_ch1"));
+    assert!(data.contains_key("soil_battery_ch1"));
 
     // Verify values
     assert_eq!(data.get("outtemp"), Some(&25.5));
     assert_eq!(data.get("outhumid"), Some(&65.0));
+    assert_eq!(data.get("soil_moisture_ch1"), Some(&78.0));
+    assert_eq!(data.get("soil_temp_ch1"), Some(&18.5));
+    assert_eq!(data.get("soil_battery_ch1"), Some(&1.5));
 }
 
 #[test]
@@ -105,7 +111,7 @@ fn test_client_multiple_requests() {
     let port = server.port();
 
     // Add multiple responses (in reverse order since we pop from the vec)
-    server.add_response(mock_livedata_response());
+    queue_livedata_with_battery(&server);
     server.add_response(mock_mac_response(&[0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]));
     server.add_response(mock_firmware_response("TEST_V1.0.0"));
 
@@ -129,4 +135,6 @@ fn test_client_multiple_requests() {
 
     let data = client.get_livedata();
     assert!(data.is_ok());
+    let data = data.unwrap();
+    assert!(data.contains_key("soil_moisture_ch1"));
 }

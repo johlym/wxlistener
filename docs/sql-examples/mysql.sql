@@ -31,6 +31,42 @@ CREATE TABLE IF NOT EXISTS wx_records (
     uv DOUBLE,
     uvi DOUBLE,
     day_max_wind DOUBLE,
+    -- Soil moisture (WH51) channels 1–8, percent
+    soil_moisture_ch1 DOUBLE,
+    soil_moisture_ch2 DOUBLE,
+    soil_moisture_ch3 DOUBLE,
+    soil_moisture_ch4 DOUBLE,
+    soil_moisture_ch5 DOUBLE,
+    soil_moisture_ch6 DOUBLE,
+    soil_moisture_ch7 DOUBLE,
+    soil_moisture_ch8 DOUBLE,
+    -- Soil temperature (WN34) channels 1–8, °C
+    soil_temp_ch1 DOUBLE,
+    soil_temp_ch2 DOUBLE,
+    soil_temp_ch3 DOUBLE,
+    soil_temp_ch4 DOUBLE,
+    soil_temp_ch5 DOUBLE,
+    soil_temp_ch6 DOUBLE,
+    soil_temp_ch7 DOUBLE,
+    soil_temp_ch8 DOUBLE,
+    -- WH51 battery voltage (volts)
+    soil_battery_ch1 DOUBLE,
+    soil_battery_ch2 DOUBLE,
+    soil_battery_ch3 DOUBLE,
+    soil_battery_ch4 DOUBLE,
+    soil_battery_ch5 DOUBLE,
+    soil_battery_ch6 DOUBLE,
+    soil_battery_ch7 DOUBLE,
+    soil_battery_ch8 DOUBLE,
+    -- WH34 battery voltage (volts)
+    soil_temp_battery_ch1 DOUBLE,
+    soil_temp_battery_ch2 DOUBLE,
+    soil_temp_battery_ch3 DOUBLE,
+    soil_temp_battery_ch4 DOUBLE,
+    soil_temp_battery_ch5 DOUBLE,
+    soil_temp_battery_ch6 DOUBLE,
+    soil_temp_battery_ch7 DOUBLE,
+    soil_temp_battery_ch8 DOUBLE,
     INDEX idx_timestamp (timestamp DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

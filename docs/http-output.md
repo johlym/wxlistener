@@ -81,7 +81,16 @@ Data is POSTed as JSON with the following structure:
     "uvi": integer,
     "wind_dir": integer,
     "wind_speed": float,
-    "windchill": float
+    "windchill": float,
+    "soil": [
+      {
+        "channel": integer,
+        "moisture": float,
+        "temperature": float,
+        "battery": float,
+        "temp_battery": float
+      }
+    ]
   }
 }
 ```
@@ -110,8 +119,13 @@ Data is POSTed as JSON with the following structure:
 | `uvi`               | `uvi`                 | integer | UV index                             |
 | `wind_dir`          | `wind_dir`            | integer | Wind direction (degrees)             |
 | `wind_speed`        | `wind_speed`          | float   | Current wind speed (m/s)             |
+| `soil[].channel`    | (1–8)                 | integer | Soil sensor channel number           |
+| `soil[].moisture`   | `soil_moisture_chN`   | float   | WH51 soil moisture (%)               |
+| `soil[].temperature`| `soil_temp_chN`       | float   | WN34 soil temperature (°C)           |
+| `soil[].battery`    | `soil_battery_chN`    | float   | WH51 battery voltage (V)             |
+| `soil[].temp_battery` | `soil_temp_battery_chN` | float | WN34 battery voltage (V)           |
 
-**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values).
+**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil` array is omitted when empty.
 
 ### Example Payload
 

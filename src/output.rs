@@ -23,7 +23,17 @@ pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
 
 pub fn format_value(key: &str, value: f64) -> String {
     match key {
-        k if k.contains("temp") || k == "dewpoint" || k == "windchill" || k == "heatindex" => {
+        k if k.starts_with("soil_moisture_ch") => format!("{}%", value as i32),
+        k if k.starts_with("soil_battery_ch") || k.starts_with("soil_temp_battery_ch") => {
+            format!("{:.2} V", value)
+        }
+        k if k.starts_with("soil_temp_ch")
+            || ((k.contains("temp")
+                || k == "dewpoint"
+                || k == "windchill"
+                || k == "heatindex")
+                && !k.contains("battery")) =>
+        {
             format!("{:.1}°C", value)
         }
         k if k.contains("humid") => format!("{}%", value as i32),
@@ -98,6 +108,14 @@ mod tests {
             "149240 bytes (145.7 KB)"
         );
         assert_eq!(format_value("heap_free", 1024.0), "1024 bytes (1.0 KB)");
+    }
+
+    #[test]
+    fn test_format_value_soil() {
+        assert_eq!(format_value("soil_moisture_ch1", 78.0), "78%");
+        assert_eq!(format_value("soil_temp_ch1", 18.5), "18.5°C");
+        assert_eq!(format_value("soil_battery_ch1", 1.50), "1.50 V");
+        assert_eq!(format_value("soil_temp_battery_ch2", 1.20), "1.20 V");
     }
 
     #[test]

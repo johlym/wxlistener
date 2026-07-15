@@ -59,6 +59,22 @@ impl Default for HttpConfig {
     }
 }
 
+/// Per-channel soil sensor reading for HTTP payloads
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SoilSensorReading {
+    pub channel: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub moisture: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
+    /// WH51 moisture sensor battery voltage (volts)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery: Option<f64>,
+    /// WH34 soil temperature sensor battery voltage (volts)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temp_battery: Option<f64>,
+}
+
 /// Weather measurement payload matching the required schema
 #[derive(Debug, Serialize)]
 #[allow(dead_code)]
@@ -103,6 +119,8 @@ pub struct WeatherMeasurement {
     pub wind_dir: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wind_speed: Option<f64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub soil: Vec<SoilSensorReading>,
 }
 
 impl WeatherMeasurement {
@@ -127,7 +145,33 @@ impl WeatherMeasurement {
             uvi: data.get("uvi").map(|v| *v as i32),
             wind_dir: data.get("wind_dir").map(|v| *v as i32),
             wind_speed: data.get("wind_speed").copied(),
+            soil: Self::extract_soil(data),
         }
+    }
+
+    fn extract_soil(data: &HashMap<String, f64>) -> Vec<SoilSensorReading> {
+        let mut soil = Vec::new();
+        for ch in 1..=8 {
+            let moisture = data.get(&format!("soil_moisture_ch{}", ch)).copied();
+            let temperature = data.get(&format!("soil_temp_ch{}", ch)).copied();
+            let battery = data.get(&format!("soil_battery_ch{}", ch)).copied();
+            let temp_battery = data.get(&format!("soil_temp_battery_ch{}", ch)).copied();
+
+            if moisture.is_some()
+                || temperature.is_some()
+                || battery.is_some()
+                || temp_battery.is_some()
+            {
+                soil.push(SoilSensorReading {
+                    channel: ch,
+                    moisture,
+                    temperature,
+                    battery,
+                    temp_battery,
+                });
+            }
+        }
+        soil
     }
 }
 
@@ -404,6 +448,34 @@ mod tests {
         assert_eq!(measurement.dewpoint, Some(15.2));
         assert_eq!(measurement.windchill, Some(21.5));
         assert_eq!(measurement.heatindex, Some(28.0));
+    }
+
+    #[test]
+    fn test_weather_measurement_with_soil() {
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 22.0);
+        data.insert("soil_moisture_ch1".to_string(), 78.0);
+        data.insert("soil_battery_ch1".to_string(), 1.5);
+        data.insert("soil_temp_ch2".to_string(), 16.2);
+        data.insert("soil_temp_battery_ch2".to_string(), 1.24);
+
+        let timestamp = Utc::now();
+        let measurement = WeatherMeasurement::from_data(&data, &timestamp);
+
+        assert_eq!(measurement.soil.len(), 2);
+        assert_eq!(measurement.soil[0].channel, 1);
+        assert_eq!(measurement.soil[0].moisture, Some(78.0));
+        assert_eq!(measurement.soil[0].battery, Some(1.5));
+        assert_eq!(measurement.soil[1].channel, 2);
+        assert_eq!(measurement.soil[1].temperature, Some(16.2));
+        assert_eq!(measurement.soil[1].temp_battery, Some(1.24));
+
+        let payload = WeatherPayload {
+            weather_measurement: measurement,
+        };
+        let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains("\"soil\""));
+        assert!(json.contains("\"moisture\":78.0") || json.contains("\"moisture\":78"));
     }
 
     #[test]

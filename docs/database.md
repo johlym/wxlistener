@@ -101,8 +101,26 @@ The table is created automatically with the following columns:
 | `uv`           | DOUBLE                    | UV radiation                       |
 | `uvi`          | DOUBLE                    | UV index                           |
 | `day_max_wind` | DOUBLE                    | Daily maximum wind speed (m/s)     |
+| `soil_moisture_ch1`…`ch8` | DOUBLE | Soil moisture WH51 channels 1–8 (%) |
+| `soil_temp_ch1`…`ch8` | DOUBLE | Soil temperature WN34 channels 1–8 (°C) |
+| `soil_battery_ch1`…`ch8` | DOUBLE | WH51 battery voltage (V) |
+| `soil_temp_battery_ch1`…`ch8` | DOUBLE | WN34 battery voltage (V) |
 
 **Note:** The `heap_free` field from the weather station is not stored in the database.
+
+### Upgrading an existing table
+
+If you already have a `wx_records` table from an older wxlistener version, add the soil columns with:
+
+```bash
+# PostgreSQL
+psql -U postgres -d weather -f docs/sql-examples/alter-add-soil-postgres.sql
+
+# MySQL
+mysql -u root -p weather < docs/sql-examples/alter-add-soil-mysql.sql
+```
+
+Without this migration, INSERTs that include soil fields will fail.
 
 ## Usage
 

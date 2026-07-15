@@ -30,7 +30,43 @@ CREATE TABLE IF NOT EXISTS wx_records (
     light DOUBLE PRECISION,
     uv DOUBLE PRECISION,
     uvi DOUBLE PRECISION,
-    day_max_wind DOUBLE PRECISION
+    day_max_wind DOUBLE PRECISION,
+    -- Soil moisture (WH51) channels 1–8, percent
+    soil_moisture_ch1 DOUBLE PRECISION,
+    soil_moisture_ch2 DOUBLE PRECISION,
+    soil_moisture_ch3 DOUBLE PRECISION,
+    soil_moisture_ch4 DOUBLE PRECISION,
+    soil_moisture_ch5 DOUBLE PRECISION,
+    soil_moisture_ch6 DOUBLE PRECISION,
+    soil_moisture_ch7 DOUBLE PRECISION,
+    soil_moisture_ch8 DOUBLE PRECISION,
+    -- Soil temperature (WN34) channels 1–8, °C
+    soil_temp_ch1 DOUBLE PRECISION,
+    soil_temp_ch2 DOUBLE PRECISION,
+    soil_temp_ch3 DOUBLE PRECISION,
+    soil_temp_ch4 DOUBLE PRECISION,
+    soil_temp_ch5 DOUBLE PRECISION,
+    soil_temp_ch6 DOUBLE PRECISION,
+    soil_temp_ch7 DOUBLE PRECISION,
+    soil_temp_ch8 DOUBLE PRECISION,
+    -- WH51 battery voltage (volts)
+    soil_battery_ch1 DOUBLE PRECISION,
+    soil_battery_ch2 DOUBLE PRECISION,
+    soil_battery_ch3 DOUBLE PRECISION,
+    soil_battery_ch4 DOUBLE PRECISION,
+    soil_battery_ch5 DOUBLE PRECISION,
+    soil_battery_ch6 DOUBLE PRECISION,
+    soil_battery_ch7 DOUBLE PRECISION,
+    soil_battery_ch8 DOUBLE PRECISION,
+    -- WH34 battery voltage (volts)
+    soil_temp_battery_ch1 DOUBLE PRECISION,
+    soil_temp_battery_ch2 DOUBLE PRECISION,
+    soil_temp_battery_ch3 DOUBLE PRECISION,
+    soil_temp_battery_ch4 DOUBLE PRECISION,
+    soil_temp_battery_ch5 DOUBLE PRECISION,
+    soil_temp_battery_ch6 DOUBLE PRECISION,
+    soil_temp_battery_ch7 DOUBLE PRECISION,
+    soil_temp_battery_ch8 DOUBLE PRECISION
 );
 
 -- Create an index on timestamp for faster queries
