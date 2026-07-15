@@ -60,7 +60,9 @@ jobs:
             target: aarch64-apple-darwin
             artifact_name: wxlistener
             asset_name: wxlistener-macos-aarch64
-          - os: windows-latest
+          # windows-2022: windows-latest currently ships VS 2026 (VS18), which
+          # breaks older aws-lc-sys/cmake builds. Keep pinned until runners stabilize.
+          - os: windows-2022
             target: x86_64-pc-windows-msvc
             artifact_name: wxlistener.exe
             asset_name: wxlistener-windows-x86_64.exe
@@ -98,7 +100,7 @@ jobs:
           find target -name "*.deb" -exec cp {} ./ \;
 
       - name: Create archive (Unix)
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
           cp ../../../wxlistener.example.toml .
@@ -106,7 +108,7 @@ jobs:
           mv ${{ matrix.asset_name }}.tar.gz ../../../
 
       - name: Create archive (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
           copy ../../../wxlistener.example.toml .

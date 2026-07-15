@@ -15,7 +15,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # windows-2022: windows-latest currently ships VS 2026 (VS18), which
+        # breaks older aws-lc-sys/cmake builds. Keep pinned until runners stabilize.
+        os: [ubuntu-latest, macos-latest, windows-2022]
         rust: [stable]
 
     steps:
