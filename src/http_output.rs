@@ -288,9 +288,7 @@ impl HttpPublisher {
     }
 
     /// Drop the front of the queue (permanent failure or successful send).
-    async fn pop_front_remaining(
-        queue: &Arc<Mutex<VecDeque<QueuedPayload>>>,
-    ) -> usize {
+    async fn pop_front_remaining(queue: &Arc<Mutex<VecDeque<QueuedPayload>>>) -> usize {
         let mut q = queue.lock().await;
         q.pop_front();
         q.len()
@@ -367,10 +365,7 @@ impl HttpPublisher {
                             );
                         }
                         SendOutcome::Transient(msg) => {
-                            eprintln!(
-                                "  [WARN] HTTP queue: {}, retrying in 1s...",
-                                msg
-                            );
+                            eprintln!("  [WARN] HTTP queue: {}, retrying in 1s...", msg);
                             time::sleep(Duration::from_secs(1)).await;
                         }
                     }
