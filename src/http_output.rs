@@ -149,6 +149,29 @@ impl WeatherMeasurement {
         }
     }
 
+    /// True when at least one sensor reading is present (not just a timestamp).
+    /// Incomplete polls that would only serialize `reading_date_time` are rejected.
+    pub fn has_sensor_data(&self) -> bool {
+        self.barometer_abs.is_some()
+            || self.barometer_rel.is_some()
+            || self.day_max_wind.is_some()
+            || self.dewpoint.is_some()
+            || self.gust_speed.is_some()
+            || self.heatindex.is_some()
+            || self.humidity.is_some()
+            || self.light.is_some()
+            || self.windchill.is_some()
+            || self.rain_day.is_some()
+            || self.rain_event.is_some()
+            || self.rain_rate.is_some()
+            || self.temperature.is_some()
+            || self.uv.is_some()
+            || self.uvi.is_some()
+            || self.wind_dir.is_some()
+            || self.wind_speed.is_some()
+            || !self.soil.is_empty()
+    }
+
     fn extract_soil(data: &HashMap<String, f64>) -> Vec<SoilSensorReading> {
         let mut soil = Vec::new();
         for ch in 1..=8 {
@@ -172,6 +195,30 @@ impl WeatherMeasurement {
             }
         }
         soil
+    }
+}
+
+/// Outcome of attempting to deliver a payload.
+#[derive(Debug)]
+enum SendOutcome {
+    Success,
+    /// 5xx / network — safe to retry later.
+    Transient(String),
+    /// 4xx — payload will never be accepted; drop it.
+    Permanent(String),
+}
+
+fn classify_http_status(status: reqwest::StatusCode, body: &str) -> SendOutcome {
+    let msg = format!("HTTP {} {}", status.as_u16(), body);
+    if status.is_server_error() || status.as_u16() == 429 {
+        SendOutcome::Transient(msg)
+    } else if status.is_client_error() {
+        SendOutcome::Permanent(msg)
+    } else if status.is_success() {
+        SendOutcome::Success
+    } else {
+        // Unexpected non-success (e.g. 3xx): treat as transient.
+        SendOutcome::Transient(msg)
     }
 }
 
@@ -214,29 +261,43 @@ impl HttpPublisher {
         Ok(publisher)
     }
 
-    /// Attempt to send a payload to the HTTP endpoint
-    async fn try_send(&self, payload: &QueuedPayload) -> Result<()> {
+    fn payload_json(payload: &QueuedPayload) -> String {
+        serde_json::to_string(payload).unwrap_or_else(|_| "<serialize error>".to_string())
+    }
+
+    /// Attempt to send a payload to the HTTP endpoint.
+    async fn try_send(&self, payload: &QueuedPayload) -> SendOutcome {
         let mut request = self.client.post(&self.url).json(payload);
 
         if let Some(auth) = &self.authorization {
             request = request.header("Authorization", auth);
         }
 
-        let response = request
-            .send()
-            .await
-            .context("Failed to send HTTP request")?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("HTTP request failed with status {}: {}", status, body);
+        match request.send().await {
+            Ok(response) => {
+                let status = response.status();
+                if status.is_success() {
+                    SendOutcome::Success
+                } else {
+                    let body = response.text().await.unwrap_or_default();
+                    classify_http_status(status, &body)
+                }
+            }
+            Err(e) => SendOutcome::Transient(format!("connection failed: {}", e)),
         }
-
-        Ok(())
     }
 
-    /// Start the background queue drain task
+    /// Drop the front of the queue (permanent failure or successful send).
+    async fn pop_front_remaining(
+        queue: &Arc<Mutex<VecDeque<QueuedPayload>>>,
+    ) -> usize {
+        let mut q = queue.lock().await;
+        q.pop_front();
+        q.len()
+    }
+
+    /// Start the background queue drain task.
+    /// Transient failures keep the front item and retry; permanent (4xx) failures drop it.
     fn start_drain_task(&self) {
         let client = self.client.clone();
         let url = self.url.clone();
@@ -246,7 +307,6 @@ impl HttpPublisher {
 
         tokio::spawn(async move {
             loop {
-                // Check if there are items to drain
                 let payload = {
                     let q = queue.lock().await;
                     if q.is_empty() {
@@ -257,20 +317,37 @@ impl HttpPublisher {
                 };
 
                 if let Some(payload) = payload {
-                    // Try to send
+                    if !payload.weather_measurement.has_sensor_data() {
+                        let remaining = Self::pop_front_remaining(&queue).await;
+                        eprintln!(
+                            "  [DROP] HTTP queue: incomplete payload (timestamp only) discarded ({} remaining): {}",
+                            remaining,
+                            Self::payload_json(&payload)
+                        );
+                        continue;
+                    }
+
                     let mut request = client.post(&url).json(&payload);
                     if let Some(auth) = &authorization {
                         request = request.header("Authorization", auth);
                     }
 
-                    match request.send().await {
-                        Ok(response) if response.status().is_success() => {
-                            // Success - remove from queue
-                            let mut q = queue.lock().await;
-                            q.pop_front();
-                            let remaining = q.len();
-                            drop(q);
+                    let outcome = match request.send().await {
+                        Ok(response) => {
+                            let status = response.status();
+                            if status.is_success() {
+                                SendOutcome::Success
+                            } else {
+                                let body = response.text().await.unwrap_or_default();
+                                classify_http_status(status, &body)
+                            }
+                        }
+                        Err(e) => SendOutcome::Transient(format!("connection failed: {}", e)),
+                    };
 
+                    match outcome {
+                        SendOutcome::Success => {
+                            let remaining = Self::pop_front_remaining(&queue).await;
                             if remaining > 0 {
                                 println!(
                                     "  [OK] HTTP queue: sent 1 record ({} remaining)",
@@ -280,33 +357,42 @@ impl HttpPublisher {
                                 println!("  [OK] HTTP queue: emptied (all records sent)");
                             }
                         }
-                        Ok(response) => {
-                            // Server error - wait and retry
+                        SendOutcome::Permanent(msg) => {
+                            let remaining = Self::pop_front_remaining(&queue).await;
                             eprintln!(
-                                "  [WARN] HTTP queue: server returned {}, retrying in 1s...",
-                                response.status()
+                                "  [DROP] HTTP queue: permanent failure, discarding record ({} remaining): {} | payload={}",
+                                remaining,
+                                msg,
+                                Self::payload_json(&payload)
                             );
                         }
-                        Err(e) => {
-                            // Connection error - wait and retry
+                        SendOutcome::Transient(msg) => {
                             eprintln!(
-                                "  [WARN] HTTP queue: connection failed ({}), retrying in 1s...",
-                                e
+                                "  [WARN] HTTP queue: {}, retrying in 1s...",
+                                msg
                             );
+                            time::sleep(Duration::from_secs(1)).await;
                         }
                     }
                 }
-
-                // Wait 1 second before next attempt
-                time::sleep(Duration::from_secs(1)).await;
             }
         });
     }
 
-    /// Publish weather data to the HTTP endpoint
-    /// If the endpoint is unreachable, data is queued for later delivery
+    /// Publish weather data to the HTTP endpoint.
+    /// Incomplete readings (timestamp only) are skipped. Transient failures are queued
+    /// for retry; permanent client errors (4xx except 429) are dropped so they cannot
+    /// block later good readings.
     pub async fn publish(&self, data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
         let measurement = WeatherMeasurement::from_data(data, timestamp);
+        if !measurement.has_sensor_data() {
+            eprintln!(
+                "  [SKIP] HTTP: incomplete reading (no sensor fields) at {}, not sent",
+                timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+            );
+            return;
+        }
+
         let payload = QueuedPayload {
             weather_measurement: measurement,
         };
@@ -322,17 +408,15 @@ impl HttpPublisher {
             return;
         }
 
-        // Try to send directly
         match self.try_send(&payload).await {
-            Ok(()) => {
+            SendOutcome::Success => {
                 println!(
                     "  [OK] HTTP: sent record ({})",
                     timestamp.format("%Y-%m-%d %H:%M:%S UTC")
                 );
             }
-            Err(e) => {
-                // Failed - add to queue and start drain task
-                eprintln!("  [WARN] HTTP publish failed: {}", e);
+            SendOutcome::Transient(msg) => {
+                eprintln!("  [WARN] HTTP publish failed (will retry): {}", msg);
                 let mut q = self.queue.lock().await;
                 q.push_back(payload);
                 let queue_len = q.len();
@@ -343,9 +427,15 @@ impl HttpPublisher {
                     queue_len
                 );
 
-                // Start drain task if not already running
                 *self.is_draining.lock().await = true;
                 self.start_drain_task();
+            }
+            SendOutcome::Permanent(msg) => {
+                eprintln!(
+                    "  [DROP] HTTP: permanent failure, not queued: {} | payload={}",
+                    msg,
+                    Self::payload_json(&payload)
+                );
             }
         }
     }
@@ -494,6 +584,45 @@ mod tests {
         assert!(measurement.dewpoint.is_none());
         assert!(measurement.windchill.is_none());
         assert!(measurement.heatindex.is_none());
+        assert!(measurement.has_sensor_data());
+    }
+
+    #[test]
+    fn test_has_sensor_data_false_for_timestamp_only() {
+        let measurement = WeatherMeasurement::from_data(&HashMap::new(), &Utc::now());
+        assert!(!measurement.has_sensor_data());
+    }
+
+    #[test]
+    fn test_has_sensor_data_true_for_soil_only() {
+        let mut data = HashMap::new();
+        data.insert("soil_moisture_ch1".to_string(), 40.0);
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert!(measurement.has_sensor_data());
+    }
+
+    #[test]
+    fn test_classify_http_status() {
+        assert!(matches!(
+            classify_http_status(reqwest::StatusCode::UNPROCESSABLE_ENTITY, "bad"),
+            SendOutcome::Permanent(_)
+        ));
+        assert!(matches!(
+            classify_http_status(reqwest::StatusCode::BAD_REQUEST, ""),
+            SendOutcome::Permanent(_)
+        ));
+        assert!(matches!(
+            classify_http_status(reqwest::StatusCode::INTERNAL_SERVER_ERROR, "err"),
+            SendOutcome::Transient(_)
+        ));
+        assert!(matches!(
+            classify_http_status(reqwest::StatusCode::TOO_MANY_REQUESTS, "slow"),
+            SendOutcome::Transient(_)
+        ));
+        assert!(matches!(
+            classify_http_status(reqwest::StatusCode::OK, ""),
+            SendOutcome::Success
+        ));
     }
 
     #[test]
