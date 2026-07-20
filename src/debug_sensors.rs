@@ -187,12 +187,12 @@ fn soil_temp_addr_channel(addr: u8) -> Option<u8> {
 /// Value byte count after the address byte for fields we skip over while probing.
 fn livedata_value_size(addr: u8) -> Option<usize> {
     match addr {
-        0x01 | 0x02 | 0x03 | 0x04 | 0x05 => Some(2), // temps
-        0x06 | 0x07 => Some(1),                      // humidity
+        0x01..=0x05 => Some(2), // temps
+        0x06..=0x07 => Some(1),                      // humidity
         0x08 | 0x09 => Some(2),                      // pressure
-        0x0A | 0x0B | 0x0C => Some(2),               // wind
-        0x0D | 0x0E | 0x0F | 0x10 | 0x11 => Some(2), // rain short
-        0x12 | 0x13 | 0x14 | 0x15 => Some(4),        // rain int / light
+        0x0A..=0x0C => Some(2),               // wind
+        0x0D..=0x11 => Some(2), // rain short
+        0x12..=0x15 => Some(4),        // rain int / light
         0x16 => Some(2),                             // uv
         0x17 => Some(1),                             // uvi
         0x18 => Some(6),                             // time

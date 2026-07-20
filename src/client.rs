@@ -465,7 +465,7 @@ impl GW1000Client {
                 }
                 // Multi-channel temp probes (WN34/WN34S): ITEM_TF_USR1–8
                 // 3 bytes — signed temp ×10 (°C, same decode_temp as outtemp) + battery ×0.02 V
-                0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x68 | 0x69 | 0x6A => {
+                0x63..=0x6A => {
                     if let Some(ch) = tf_usr_channel(field_addr) {
                         if index + 3 < data.len() {
                             let temp = decode_temp(&data[index + 1..index + 3]);
