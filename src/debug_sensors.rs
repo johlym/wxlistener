@@ -215,10 +215,10 @@ impl SensorPathVerdict {
     pub fn message(&self) -> &'static str {
         match self {
             Self::TempProbeConfirmed => {
-                "WN34/WN34S temp probes confirmed (ITEM_TF_USR / tf_temp_ch* and/or SENSOR_ID types 31–38)"
+                "Temp probes confirmed (ITEM_TF_USR / tf_temp_ch*, SENSOR_ID types 31–38, and/or legacy ITEM_SOILTEMP)"
             }
             Self::NoneFound => {
-                "No multi-channel temperature probes registered / no ITEM_TF_USR* in livedata"
+                "No multi-channel temperature probes registered / no ITEM_TF_USR* or ITEM_SOILTEMP* in livedata"
             }
         }
     }
@@ -234,8 +234,11 @@ pub fn verdict(
         .any(|e| e.is_active() && (WH34_SENSOR_CH1..=WH34_SENSOR_CH8).contains(&e.sensor_type));
     let has_tf_livedata = livedata_fields.iter().any(|f| f.label.contains("TF_USR"));
     let has_tf_parsed = parsed.keys().any(|k| k.starts_with("tf_temp_ch"));
+    // Legacy ITEM_SOILTEMP path — still decoded/listed by --debug-sensors.
+    let has_legacy_soil_temp = parsed.keys().any(|k| k.starts_with("soil_temp_ch"))
+        || livedata_fields.iter().any(|f| f.label.contains("SOILTEMP"));
 
-    if has_tf_livedata || has_tf_parsed || has_wh34_id {
+    if has_tf_livedata || has_tf_parsed || has_wh34_id || has_legacy_soil_temp {
         SensorPathVerdict::TempProbeConfirmed
     } else {
         SensorPathVerdict::NoneFound
@@ -426,6 +429,19 @@ mod tests {
         let parsed = HashMap::new();
         assert_eq!(
             verdict(&entries, &[], &parsed),
+            SensorPathVerdict::TempProbeConfirmed
+        );
+    }
+
+    #[test]
+    fn test_verdict_legacy_soil_temp() {
+        // Gateway emitting only legacy ITEM_SOILTEMP should not report NoneFound
+        // while --debug-sensors still lists those keys.
+        let fields = probe_livedata_fields(&[0x2B, 0x00, 0xB9]);
+        let mut parsed = HashMap::new();
+        parsed.insert("soil_temp_ch1".to_string(), 18.5);
+        assert_eq!(
+            verdict(&[], &fields, &parsed),
             SensorPathVerdict::TempProbeConfirmed
         );
     }
