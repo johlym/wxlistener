@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_moisture_ch6 DOUBLE,
     soil_moisture_ch7 DOUBLE,
     soil_moisture_ch8 DOUBLE,
-    -- Soil temperature (WN34) channels 1–8, °C
+    -- Legacy ITEM_SOILTEMP channels 1–8, °C (optional)
     soil_temp_ch1 DOUBLE,
     soil_temp_ch2 DOUBLE,
     soil_temp_ch3 DOUBLE,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_battery_ch6 DOUBLE,
     soil_battery_ch7 DOUBLE,
     soil_battery_ch8 DOUBLE,
-    -- WH34 battery voltage (volts)
+    -- Legacy soil_temp battery columns (unused by current WN34S path)
     soil_temp_battery_ch1 DOUBLE,
     soil_temp_battery_ch2 DOUBLE,
     soil_temp_battery_ch3 DOUBLE,
@@ -67,6 +67,24 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_temp_battery_ch6 DOUBLE,
     soil_temp_battery_ch7 DOUBLE,
     soil_temp_battery_ch8 DOUBLE,
+    -- Multi-channel temp probes (WN34/WN34S via ITEM_TF_USR), °C — same scale as outtemp
+    tf_temp_ch1 DOUBLE,
+    tf_temp_ch2 DOUBLE,
+    tf_temp_ch3 DOUBLE,
+    tf_temp_ch4 DOUBLE,
+    tf_temp_ch5 DOUBLE,
+    tf_temp_ch6 DOUBLE,
+    tf_temp_ch7 DOUBLE,
+    tf_temp_ch8 DOUBLE,
+    -- WN34/WN34S battery voltage (volts)
+    tf_battery_ch1 DOUBLE,
+    tf_battery_ch2 DOUBLE,
+    tf_battery_ch3 DOUBLE,
+    tf_battery_ch4 DOUBLE,
+    tf_battery_ch5 DOUBLE,
+    tf_battery_ch6 DOUBLE,
+    tf_battery_ch7 DOUBLE,
+    tf_battery_ch8 DOUBLE,
     INDEX idx_timestamp (timestamp DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -84,15 +84,20 @@ fn test_client_get_livedata() {
     assert!(data.contains_key("outtemp"));
     assert!(data.contains_key("outhumid"));
     assert!(data.contains_key("soil_moisture_ch1"));
-    assert!(data.contains_key("soil_temp_ch1"));
     assert!(data.contains_key("soil_battery_ch1"));
+    assert!(data.contains_key("tf_temp_ch1"));
+    assert!(data.contains_key("tf_temp_ch2"));
+    assert!(data.contains_key("tf_battery_ch1"));
 
-    // Verify values
+    // Verify values (°C via same decode_temp path as outtemp)
     assert_eq!(data.get("outtemp"), Some(&25.5));
     assert_eq!(data.get("outhumid"), Some(&65.0));
     assert_eq!(data.get("soil_moisture_ch1"), Some(&78.0));
-    assert_eq!(data.get("soil_temp_ch1"), Some(&18.5));
     assert_eq!(data.get("soil_battery_ch1"), Some(&1.5));
+    assert_eq!(data.get("tf_temp_ch1"), Some(&23.1));
+    assert_eq!(data.get("tf_temp_ch2"), Some(&19.5));
+    // Livedata TF battery wins over SENSOR_ID WH34 battery
+    assert!((data.get("tf_battery_ch1").unwrap() - 1.62).abs() < 0.001);
 }
 
 #[test]

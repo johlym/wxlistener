@@ -24,10 +24,14 @@ pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
 pub fn format_value(key: &str, value: f64) -> String {
     match key {
         k if k.starts_with("soil_moisture_ch") => format!("{}%", value as i32),
-        k if k.starts_with("soil_battery_ch") || k.starts_with("soil_temp_battery_ch") => {
+        k if k.starts_with("soil_battery_ch")
+            || k.starts_with("soil_temp_battery_ch")
+            || k.starts_with("tf_battery_ch") =>
+        {
             format!("{:.2} V", value)
         }
         k if k.starts_with("soil_temp_ch")
+            || k.starts_with("tf_temp_ch")
             || ((k.contains("temp")
                 || k == "dewpoint"
                 || k == "windchill"
@@ -116,6 +120,15 @@ mod tests {
         assert_eq!(format_value("soil_temp_ch1", 18.5), "18.5°C");
         assert_eq!(format_value("soil_battery_ch1", 1.50), "1.50 V");
         assert_eq!(format_value("soil_temp_battery_ch2", 1.20), "1.20 V");
+    }
+
+    #[test]
+    fn test_format_value_tf_temp_probes() {
+        assert_eq!(format_value("tf_temp_ch1", 23.1), "23.1°C");
+        assert_eq!(format_value("tf_temp_ch2", 19.5), "19.5°C");
+        assert_eq!(format_value("tf_battery_ch1", 1.62), "1.62 V");
+        // Same unit formatting as outdoor temperature
+        assert_eq!(format_value("tf_temp_ch1", 25.5), format_value("outtemp", 25.5));
     }
 
     #[test]

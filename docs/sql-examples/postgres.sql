@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_moisture_ch6 DOUBLE PRECISION,
     soil_moisture_ch7 DOUBLE PRECISION,
     soil_moisture_ch8 DOUBLE PRECISION,
-    -- Soil temperature (WN34) channels 1–8, °C
+    -- Legacy ITEM_SOILTEMP channels 1–8, °C (optional)
     soil_temp_ch1 DOUBLE PRECISION,
     soil_temp_ch2 DOUBLE PRECISION,
     soil_temp_ch3 DOUBLE PRECISION,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_battery_ch6 DOUBLE PRECISION,
     soil_battery_ch7 DOUBLE PRECISION,
     soil_battery_ch8 DOUBLE PRECISION,
-    -- WH34 battery voltage (volts)
+    -- Legacy soil_temp battery columns (unused by current WN34S path)
     soil_temp_battery_ch1 DOUBLE PRECISION,
     soil_temp_battery_ch2 DOUBLE PRECISION,
     soil_temp_battery_ch3 DOUBLE PRECISION,
@@ -66,7 +66,25 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_temp_battery_ch5 DOUBLE PRECISION,
     soil_temp_battery_ch6 DOUBLE PRECISION,
     soil_temp_battery_ch7 DOUBLE PRECISION,
-    soil_temp_battery_ch8 DOUBLE PRECISION
+    soil_temp_battery_ch8 DOUBLE PRECISION,
+    -- Multi-channel temp probes (WN34/WN34S via ITEM_TF_USR), °C — same scale as outtemp
+    tf_temp_ch1 DOUBLE PRECISION,
+    tf_temp_ch2 DOUBLE PRECISION,
+    tf_temp_ch3 DOUBLE PRECISION,
+    tf_temp_ch4 DOUBLE PRECISION,
+    tf_temp_ch5 DOUBLE PRECISION,
+    tf_temp_ch6 DOUBLE PRECISION,
+    tf_temp_ch7 DOUBLE PRECISION,
+    tf_temp_ch8 DOUBLE PRECISION,
+    -- WN34/WN34S battery voltage (volts)
+    tf_battery_ch1 DOUBLE PRECISION,
+    tf_battery_ch2 DOUBLE PRECISION,
+    tf_battery_ch3 DOUBLE PRECISION,
+    tf_battery_ch4 DOUBLE PRECISION,
+    tf_battery_ch5 DOUBLE PRECISION,
+    tf_battery_ch6 DOUBLE PRECISION,
+    tf_battery_ch7 DOUBLE PRECISION,
+    tf_battery_ch8 DOUBLE PRECISION
 );
 
 -- Create an index on timestamp for faster queries

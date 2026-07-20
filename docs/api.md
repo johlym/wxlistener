@@ -152,9 +152,9 @@ The `data` object contains weather measurements. Available fields depend on your
 | `uv`           | UV radiation                 | `250`         |
 | `uvi`          | UV index                     | `3`           |
 | `soil_moisture_ch1`…`ch8` | Soil moisture (WH51), % | `78%` |
-| `soil_temp_ch1`…`ch8` | Soil temperature (WN34) | `18.5°C` |
 | `soil_battery_ch1`…`ch8` | WH51 battery voltage | `1.50 V` |
-| `soil_temp_battery_ch1`…`ch8` | WN34 battery voltage | `1.24 V` |
+| `tf_temp_ch1`…`ch8` | Multi-channel temp probe (WN34/WN34S), °C | `23.1°C` |
+| `tf_battery_ch1`…`ch8` | WN34/WN34S battery voltage | `1.62 V` |
 
 **Note**: Not all fields may be present. Available fields depend on the sensors connected to your weather station.
 

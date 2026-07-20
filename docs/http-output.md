@@ -86,9 +86,14 @@ Data is POSTed as JSON with the following structure:
       {
         "channel": integer,
         "moisture": float,
+        "battery": float
+      }
+    ],
+    "temp_probes": [
+      {
+        "channel": integer,
         "temperature": float,
-        "battery": float,
-        "temp_battery": float
+        "battery": float
       }
     ]
   }
@@ -119,13 +124,14 @@ Data is POSTed as JSON with the following structure:
 | `uvi`               | `uvi`                 | integer | UV index                             |
 | `wind_dir`          | `wind_dir`            | integer | Wind direction (degrees)             |
 | `wind_speed`        | `wind_speed`          | float   | Current wind speed (m/s)             |
-| `soil[].channel`    | (1–8)                 | integer | Soil sensor channel number           |
+| `soil[].channel`    | (1–8)                 | integer | WH51 soil moisture channel           |
 | `soil[].moisture`   | `soil_moisture_chN`   | float   | WH51 soil moisture (%)               |
-| `soil[].temperature`| `soil_temp_chN`       | float   | WN34 soil temperature (°C)           |
 | `soil[].battery`    | `soil_battery_chN`    | float   | WH51 battery voltage (V)             |
-| `soil[].temp_battery` | `soil_temp_battery_chN` | float | WN34 battery voltage (V)           |
+| `temp_probes[].channel` | (1–8)             | integer | Multi-channel temp probe channel     |
+| `temp_probes[].temperature` | `tf_temp_chN` | float   | WN34/WN34S temperature (°C, same as `temperature`) |
+| `temp_probes[].battery` | `tf_battery_chN`  | float   | WN34/WN34S battery voltage (V)       |
 
-**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil` array is omitted when empty.
+**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil` and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`.
 
 ### Example Payload
 

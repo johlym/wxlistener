@@ -295,7 +295,23 @@ impl DatabaseWriter {
                     soil_temp_battery_ch5 DOUBLE PRECISION,
                     soil_temp_battery_ch6 DOUBLE PRECISION,
                     soil_temp_battery_ch7 DOUBLE PRECISION,
-                    soil_temp_battery_ch8 DOUBLE PRECISION
+                    soil_temp_battery_ch8 DOUBLE PRECISION,
+                    tf_temp_ch1 DOUBLE PRECISION,
+                    tf_temp_ch2 DOUBLE PRECISION,
+                    tf_temp_ch3 DOUBLE PRECISION,
+                    tf_temp_ch4 DOUBLE PRECISION,
+                    tf_temp_ch5 DOUBLE PRECISION,
+                    tf_temp_ch6 DOUBLE PRECISION,
+                    tf_temp_ch7 DOUBLE PRECISION,
+                    tf_temp_ch8 DOUBLE PRECISION,
+                    tf_battery_ch1 DOUBLE PRECISION,
+                    tf_battery_ch2 DOUBLE PRECISION,
+                    tf_battery_ch3 DOUBLE PRECISION,
+                    tf_battery_ch4 DOUBLE PRECISION,
+                    tf_battery_ch5 DOUBLE PRECISION,
+                    tf_battery_ch6 DOUBLE PRECISION,
+                    tf_battery_ch7 DOUBLE PRECISION,
+                    tf_battery_ch8 DOUBLE PRECISION
                 )
                 "#,
                 self.table_name
@@ -358,7 +374,23 @@ impl DatabaseWriter {
                     soil_temp_battery_ch5 DOUBLE,
                     soil_temp_battery_ch6 DOUBLE,
                     soil_temp_battery_ch7 DOUBLE,
-                    soil_temp_battery_ch8 DOUBLE
+                    soil_temp_battery_ch8 DOUBLE,
+                    tf_temp_ch1 DOUBLE,
+                    tf_temp_ch2 DOUBLE,
+                    tf_temp_ch3 DOUBLE,
+                    tf_temp_ch4 DOUBLE,
+                    tf_temp_ch5 DOUBLE,
+                    tf_temp_ch6 DOUBLE,
+                    tf_temp_ch7 DOUBLE,
+                    tf_temp_ch8 DOUBLE,
+                    tf_battery_ch1 DOUBLE,
+                    tf_battery_ch2 DOUBLE,
+                    tf_battery_ch3 DOUBLE,
+                    tf_battery_ch4 DOUBLE,
+                    tf_battery_ch5 DOUBLE,
+                    tf_battery_ch6 DOUBLE,
+                    tf_battery_ch7 DOUBLE,
+                    tf_battery_ch8 DOUBLE
                 )
                 "#,
                 self.table_name

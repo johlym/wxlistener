@@ -20,7 +20,7 @@ const SOCKET_TIMEOUT: Duration = Duration::from_secs(16);
 const WH51_SENSOR_CH1: u8 = 14;
 const WH51_SENSOR_CH8: u8 = 21;
 
-/// SENSOR_IDT indices for WN34/WH34 soil temperature channels 1–8
+/// SENSOR_IDT indices for WN34/WH34 multi-channel temperature probes 1–8
 const WH34_SENSOR_CH1: u8 = 31;
 const WH34_SENSOR_CH8: u8 = 38;
 
@@ -98,11 +98,15 @@ impl GW1000Client {
         let data = self.fetch_livedata_payload()?;
         let mut result = self.parse_livedata(&data)?;
 
-        // Battery status for soil sensors lives in CMD_READ_SENSOR_ID_NEW (0x3C),
-        // not in the livedata packet. Best-effort merge — livedata still succeeds
-        // if the sensor-ID call fails.
+        // Battery status for WH51 / WH34 lives in CMD_READ_SENSOR_ID_NEW (0x3C).
+        // Best-effort merge — livedata still succeeds if the sensor-ID call fails.
+        // Prefer livedata values (e.g. TF_USR in-band battery) over SENSOR_ID.
         match self.get_soil_battery_data() {
-            Ok(battery) => result.extend(battery),
+            Ok(battery) => {
+                for (k, v) in battery {
+                    result.entry(k).or_insert(v);
+                }
+            }
             Err(e) => {
                 eprintln!("[WARN] Failed to read soil sensor battery status: {}", e);
             }
@@ -155,10 +159,10 @@ impl GW1000Client {
         self.parse_livedata(data)
     }
 
-    /// Read CMD_READ_SENSOR_ID_NEW and extract WH51 / WH34 soil battery values.
+    /// Read CMD_READ_SENSOR_ID_NEW and extract WH51 / WH34 battery values.
     ///
     /// WH51 (moisture): battery byte is voltage × 10 (volts = val × 0.1).
-    /// WH34 (soil temp): battery byte is voltage × 50 (volts = val × 0.02).
+    /// WH34 (temp probe): battery byte is voltage × 50 (volts = val × 0.02).
     fn get_soil_battery_data(&self) -> Result<HashMap<String, f64>> {
         let data = self.fetch_sensor_id_payload()?;
         Ok(Self::parse_soil_battery(&data))
@@ -196,9 +200,9 @@ impl GW1000Client {
                 result.insert(format!("soil_battery_ch{}", ch), battery as f64 * 0.1);
             } else if (WH34_SENSOR_CH1..=WH34_SENSOR_CH8).contains(&sensor_type) {
                 let ch = (sensor_type - WH34_SENSOR_CH1) + 1;
-                // WH34: volts = val × 0.02 — store under soil_temp_battery so it
-                // doesn't collide with WH51 moisture battery on the same channel.
-                result.insert(format!("soil_temp_battery_ch{}", ch), battery as f64 * 0.02);
+                // WH34/WN34S: volts = val × 0.02 — shared channel space with WH51,
+                // so store under tf_battery rather than soil_battery.
+                result.insert(format!("tf_battery_ch{}", ch), battery as f64 * 0.02);
             }
         }
 
@@ -430,7 +434,8 @@ impl GW1000Client {
                         break;
                     }
                 }
-                // Soil temperature channels 1–8 (WN34): 2-byte signed temp ×10
+                // Legacy ITEM_SOILTEMP channels 1–8: 2-byte signed temp ×10 (°C).
+                // Modern WN34/WN34S probes use ITEM_TF_USR instead.
                 0x2B | 0x2D | 0x2F | 0x31 | 0x33 | 0x35 | 0x37 | 0x39 => {
                     if let Some(ch) = soil_temp_channel(field_addr) {
                         if index + 2 < data.len() {
@@ -444,13 +449,30 @@ impl GW1000Client {
                         index += 1;
                     }
                 }
-                // Soil moisture channels 1–8 (WH51): 1-byte percent
+                // Soil moisture channels 1–8 (WH51): 1-byte percent — moisture only
                 0x2C | 0x2E | 0x30 | 0x32 | 0x34 | 0x36 | 0x38 | 0x3A => {
                     if let Some(ch) = soil_moisture_channel(field_addr) {
                         if index + 1 < data.len() {
                             result
                                 .insert(format!("soil_moisture_ch{}", ch), data[index + 1] as f64);
                             index += 2;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        index += 1;
+                    }
+                }
+                // Multi-channel temp probes (WN34/WN34S): ITEM_TF_USR1–8
+                // 3 bytes — signed temp ×10 (°C, same decode_temp as outtemp) + battery ×0.02 V
+                0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x68 | 0x69 | 0x6A => {
+                    if let Some(ch) = tf_usr_channel(field_addr) {
+                        if index + 3 < data.len() {
+                            let temp = decode_temp(&data[index + 1..index + 3]);
+                            let battery = data[index + 3] as f64 * 0.02;
+                            result.insert(format!("tf_temp_ch{}", ch), temp);
+                            result.insert(format!("tf_battery_ch{}", ch), battery);
+                            index += 4;
                         } else {
                             break;
                         }
@@ -507,6 +529,20 @@ fn soil_moisture_channel(addr: u8) -> Option<u8> {
     }
 }
 
+fn tf_usr_channel(addr: u8) -> Option<u8> {
+    match addr {
+        0x63 => Some(1),
+        0x64 => Some(2),
+        0x65 => Some(3),
+        0x66 => Some(4),
+        0x67 => Some(5),
+        0x68 => Some(6),
+        0x69 => Some(7),
+        0x6A => Some(8),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -541,7 +577,30 @@ mod tests {
 
         assert_eq!(result.get("soil_battery_ch1"), Some(&1.5));
         assert!(!result.contains_key("soil_battery_ch2"));
-        assert!((result.get("soil_temp_battery_ch1").unwrap() - 1.24).abs() < 0.001);
+        assert!((result.get("tf_battery_ch1").unwrap() - 1.24).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_parse_tf_usr_temp_probes() {
+        let client = GW1000Client::new("127.0.0.1".to_string(), 45000);
+        // Same scale as outtemp: 231 = 23.1°C, 195 = 19.5°C; batt 81 → 1.62V, 80 → 1.60V
+        let data = [
+            0x02, 0x00, 0xFF, // outtemp = 25.5°C
+            0x63, 0x00, 0xE7, 81, // TF_USR1 = 23.1°C, 1.62V
+            0x64, 0x00, 0xC3, 80, // TF_USR2 = 19.5°C, 1.60V
+        ];
+        let result = client.parse_livedata(&data).unwrap();
+
+        assert_eq!(result.get("outtemp"), Some(&25.5));
+        assert_eq!(result.get("tf_temp_ch1"), Some(&23.1));
+        assert!((result.get("tf_battery_ch1").unwrap() - 1.62).abs() < 0.001);
+        assert_eq!(result.get("tf_temp_ch2"), Some(&19.5));
+        assert!((result.get("tf_battery_ch2").unwrap() - 1.60).abs() < 0.001);
+        // Same decoder path as outdoor temperature
+        assert_eq!(
+            result.get("tf_temp_ch1").copied().map(|t| format!("{:.1}", t)),
+            Some("23.1".to_string())
+        );
     }
 
     #[test]
@@ -552,5 +611,8 @@ mod tests {
         assert_eq!(soil_temp_channel(0x2B), Some(1));
         assert_eq!(soil_temp_channel(0x39), Some(8));
         assert_eq!(soil_temp_channel(0x2C), None);
+        assert_eq!(tf_usr_channel(0x63), Some(1));
+        assert_eq!(tf_usr_channel(0x6A), Some(8));
+        assert_eq!(tf_usr_channel(0x2B), None);
     }
 }
