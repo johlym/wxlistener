@@ -188,15 +188,15 @@ fn soil_temp_addr_channel(addr: u8) -> Option<u8> {
 fn livedata_value_size(addr: u8) -> Option<usize> {
     match addr {
         0x01..=0x05 => Some(2), // temps
-        0x06..=0x07 => Some(1),                      // humidity
-        0x08 | 0x09 => Some(2),                      // pressure
-        0x0A..=0x0C => Some(2),               // wind
+        0x06..=0x07 => Some(1), // humidity
+        0x08 | 0x09 => Some(2), // pressure
+        0x0A..=0x0C => Some(2), // wind
         0x0D..=0x11 => Some(2), // rain short
-        0x12..=0x15 => Some(4),        // rain int / light
-        0x16 => Some(2),                             // uv
-        0x17 => Some(1),                             // uvi
-        0x18 => Some(6),                             // time
-        0x19 => Some(2),                             // day max wind
+        0x12..=0x15 => Some(4), // rain int / light
+        0x16 => Some(2),        // uv
+        0x17 => Some(1),        // uvi
+        0x18 => Some(6),        // time
+        0x19 => Some(2),        // day max wind
         // soil moisture (WH51)
         0x2C | 0x2E | 0x30 | 0x32 | 0x34 | 0x36 | 0x38 | 0x3A => Some(1),
         0x6C => Some(4), // heap
