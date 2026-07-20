@@ -598,7 +598,10 @@ mod tests {
         assert!((result.get("tf_battery_ch2").unwrap() - 1.60).abs() < 0.001);
         // Same decoder path as outdoor temperature
         assert_eq!(
-            result.get("tf_temp_ch1").copied().map(|t| format!("{:.1}", t)),
+            result
+                .get("tf_temp_ch1")
+                .copied()
+                .map(|t| format!("{:.1}", t)),
             Some("23.1".to_string())
         );
     }
