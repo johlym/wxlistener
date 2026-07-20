@@ -171,7 +171,12 @@ cargo build --release
 
 # Continuous mode
 ./target/release/wxlistener --ip 10.31.100.42 --continuous 30
+
+# One-shot sensor inventory (WN34S/WH34 vs WH35/TF validation)
+./target/release/wxlistener --ip 10.31.100.42 --debug-sensors
 ```
+
+`--debug-sensors` dumps `CMD_READ_SENSOR_ID_NEW` entries (with type names), walks livedata for `ITEM_SOILTEMP*` / `ITEM_TF_USR*`, prints listener-decoded `soil_*` keys, and reports whether the gateway is using the WH34 (WN34S) path already supported by this listener.
 
 ## Dependencies
 

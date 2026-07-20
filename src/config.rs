@@ -53,6 +53,10 @@ pub struct Args {
     /// Create database table and exit (requires database config in config file)
     #[arg(long)]
     pub db_create_table: bool,
+
+    /// Probe SENSOR_ID_NEW + livedata for WN34/WH34 vs WH35/TF mapping, then exit
+    #[arg(long)]
+    pub debug_sensors: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -167,6 +171,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -186,6 +191,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -209,6 +215,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -232,6 +239,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -256,6 +264,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let result = args.get_connection_info();
@@ -278,6 +287,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let result = args.get_connection_info();
@@ -303,6 +313,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let result = args.get_connection_info();
@@ -362,6 +373,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -393,6 +405,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();
@@ -421,6 +434,7 @@ mod tests {
             web_host: "0.0.0.0".to_string(),
             web_port: 18888,
             db_create_table: false,
+            debug_sensors: false,
         };
 
         let (ip, port) = args.get_connection_info().unwrap();

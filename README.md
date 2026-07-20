@@ -183,6 +183,9 @@ wxlistener --ip 10.31.100.42 --format json
 # Continuous monitoring (poll every 30 seconds)
 wxlistener --ip 10.31.100.42 --continuous 30
 
+# Probe gateway sensor IDs / livedata (WN34S validation), then exit
+wxlistener --ip 10.31.100.42 --debug-sensors
+
 # Web interface mode (default port 18888)
 wxlistener --ip 10.31.100.42 --web
 
