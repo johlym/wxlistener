@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
 
     let client = GW1000Client::new(ip.clone(), port);
 
-    // One-shot sensor inventory probe (WN34S / WH34 validation)
+    // One-shot sensor inventory probe (WN34S / WH34 TF validation)
     if args.debug_sensors {
         run_debug_sensors(&client)?;
         return Ok(());

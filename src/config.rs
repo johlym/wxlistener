@@ -54,7 +54,7 @@ pub struct Args {
     #[arg(long)]
     pub db_create_table: bool,
 
-    /// Probe SENSOR_ID_NEW + livedata for WN34/WH34 vs WH35/TF mapping, then exit
+    /// Probe SENSOR_ID_NEW + livedata for WN34/WN34S ITEM_TF_USR mapping, then exit
     #[arg(long)]
     pub debug_sensors: bool,
 }

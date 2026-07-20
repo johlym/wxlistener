@@ -1,4 +1,4 @@
-//! One-shot sensor inventory probe for validating WN34S / WH34 mapping.
+//! One-shot sensor inventory probe for validating WN34S / WH34 TF mapping.
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -56,7 +56,7 @@ impl SensorIdEntry {
             Some(format!("soil_battery_ch{}", ch))
         } else if (WH34_SENSOR_CH1..=WH34_SENSOR_CH8).contains(&self.sensor_type) {
             let ch = self.sensor_type - WH34_SENSOR_CH1 + 1;
-            Some(format!("soil_temp_battery_ch{}", ch))
+            Some(format!("tf_battery_ch{}", ch))
         } else {
             None
         }
@@ -83,7 +83,7 @@ pub fn sensor_type_label(sensor_type: u8) -> String {
         }
         39 => "WH45 CO2".to_string(),
         t if (WH35_SENSOR_CH1..=WH35_SENSOR_CH8).contains(&t) => {
-            format!("WH35/WN35 TF temp ch{}", t - WH35_SENSOR_CH1 + 1)
+            format!("WH35/WN35 leaf wetness ch{}", t - WH35_SENSOR_CH1 + 1)
         }
         48 => "WH90 array".to_string(),
         t => format!("unknown(type={})", t),
@@ -118,7 +118,7 @@ pub struct LivedataProbeField {
     pub detail: String,
 }
 
-/// Walk livedata payload looking for soil-temp and TF (WH35) fields.
+/// Walk livedata payload looking for moisture, legacy soil-temp, and TF probe fields.
 pub fn probe_livedata_fields(data: &[u8]) -> Vec<LivedataProbeField> {
     let mut fields = Vec::new();
     let mut index = 0;
@@ -147,7 +147,7 @@ pub fn probe_livedata_fields(data: &[u8]) -> Vec<LivedataProbeField> {
                     let batt = data[index + 3] as f64 * 0.02;
                     fields.push(LivedataProbeField {
                         addr,
-                        label: format!("ITEM_TF_USR{} (WH35/WN35)", ch),
+                        label: format!("ITEM_TF_USR{} → tf_temp_ch{} (WN34/WN34S)", ch, ch),
                         detail: format!("{:.1}°C, battery {:.2} V", temp, batt),
                     });
                     index += 4;
@@ -206,22 +206,19 @@ fn livedata_value_size(addr: u8) -> Option<usize> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SensorPathVerdict {
-    Wh34Confirmed,
-    Wh35Path,
+    /// WN34/WN34S multi-channel temp probes via ITEM_TF_USR and/or SENSOR_ID types 31–38.
+    TempProbeConfirmed,
     NoneFound,
 }
 
 impl SensorPathVerdict {
     pub fn message(&self) -> &'static str {
         match self {
-            Self::Wh34Confirmed => {
-                "WN34/WH34 path confirmed (types 31–38 and/or soil_temp_ch* present)"
-            }
-            Self::Wh35Path => {
-                "Data is on WH35/TF path (types 40–47 or ITEM_TF_USR); soil_temp parser will not see it"
+            Self::TempProbeConfirmed => {
+                "WN34/WN34S temp probes confirmed (ITEM_TF_USR / tf_temp_ch* and/or SENSOR_ID types 31–38)"
             }
             Self::NoneFound => {
-                "No temperature-probe sensors registered / no signal on WH34 or WH35 paths"
+                "No multi-channel temperature probes registered / no ITEM_TF_USR* in livedata"
             }
         }
     }
@@ -235,24 +232,11 @@ pub fn verdict(
     let has_wh34_id = entries
         .iter()
         .any(|e| e.is_active() && (WH34_SENSOR_CH1..=WH34_SENSOR_CH8).contains(&e.sensor_type));
-    // soil_temp_ch* only (not soil_temp_battery_ch* from SENSOR_ID).
-    let has_soil_temp = parsed.keys().any(|k| k.starts_with("soil_temp_ch"))
-        || livedata_fields.iter().any(|f| f.label.contains("SOILTEMP"));
-    let has_wh35_id = entries
-        .iter()
-        .any(|e| e.is_active() && (WH35_SENSOR_CH1..=WH35_SENSOR_CH8).contains(&e.sensor_type));
-    let has_tf = livedata_fields.iter().any(|f| f.label.contains("TF_USR"));
+    let has_tf_livedata = livedata_fields.iter().any(|f| f.label.contains("TF_USR"));
+    let has_tf_parsed = parsed.keys().any(|k| k.starts_with("tf_temp_ch"));
 
-    // Livedata path evidence beats SENSOR_ID registration: a WH34 ID can remain
-    // active while the gateway only emits ITEM_TF_USR* (WH35 path).
-    if has_soil_temp {
-        SensorPathVerdict::Wh34Confirmed
-    } else if has_tf {
-        SensorPathVerdict::Wh35Path
-    } else if has_wh34_id {
-        SensorPathVerdict::Wh34Confirmed
-    } else if has_wh35_id {
-        SensorPathVerdict::Wh35Path
+    if has_tf_livedata || has_tf_parsed || has_wh34_id {
+        SensorPathVerdict::TempProbeConfirmed
     } else {
         SensorPathVerdict::NoneFound
     }
@@ -261,7 +245,7 @@ pub fn verdict(
 /// Connect, print the sensor inventory report, and return the verdict.
 pub fn run_debug_sensors(client: &GW1000Client) -> Result<SensorPathVerdict> {
     println!("============================================================");
-    println!("Sensor debug probe (WN34S / WH34 validation)");
+    println!("Sensor debug probe (WN34S / WH34 TF validation)");
     println!("============================================================");
 
     println!("\n--- Device Information ---");
@@ -303,7 +287,7 @@ pub fn run_debug_sensors(client: &GW1000Client) -> Result<SensorPathVerdict> {
         }
     }
 
-    println!("\n--- Livedata soil / TF fields (0x27) ---");
+    println!("\n--- Livedata moisture / TF fields (0x27) ---");
     let livedata_payload = client.fetch_livedata_payload()?;
     let probe_fields = probe_livedata_fields(&livedata_payload);
     let parsed = client.parse_livedata_public(&livedata_payload)?;
@@ -320,23 +304,24 @@ pub fn run_debug_sensors(client: &GW1000Client) -> Result<SensorPathVerdict> {
         }
     }
 
-    println!("\n--- Listener-decoded soil keys ---");
-    // Merge batteries from sensor-ID the same way get_livedata does.
+    println!("\n--- Listener-decoded soil / temp-probe keys ---");
+    // Merge batteries from sensor-ID the same way get_livedata does (livedata wins).
     let mut merged = parsed;
     for e in entries.iter().filter(|e| e.is_active()) {
         if let (Some(key), Some(volts)) = (e.listener_battery_key(), e.battery_volts()) {
-            if key.starts_with("soil_") {
-                merged.insert(key, volts);
+            if key.starts_with("soil_") || key.starts_with("tf_") {
+                merged.entry(key).or_insert(volts);
             }
         }
     }
     let mut merged_keys: Vec<_> = merged
         .iter()
         .filter(|(k, _)| {
-            k.starts_with("soil_temp_ch")
-                || k.starts_with("soil_temp_battery_ch")
+            k.starts_with("tf_temp_ch")
+                || k.starts_with("tf_battery_ch")
                 || k.starts_with("soil_moisture_ch")
                 || k.starts_with("soil_battery_ch")
+                || k.starts_with("soil_temp_ch")
         })
         .collect();
     merged_keys.sort_by(|a, b| a.0.cmp(b.0));
@@ -382,7 +367,7 @@ mod tests {
     fn test_sensor_type_label_wh34_wh35() {
         assert!(sensor_type_label(31).contains("WN34"));
         assert!(sensor_type_label(38).contains("ch8"));
-        assert!(sensor_type_label(40).contains("WN35"));
+        assert!(sensor_type_label(40).contains("leaf wetness"));
         assert!(sensor_type_label(14).contains("WH51"));
     }
 
@@ -401,7 +386,7 @@ mod tests {
         assert!((entries[0].battery_volts().unwrap() - 1.24).abs() < 0.001);
         assert_eq!(
             entries[0].listener_battery_key().as_deref(),
-            Some("soil_temp_battery_ch1")
+            Some("tf_battery_ch1")
         );
         assert!(entries[2].listener_battery_key().is_none());
     }
@@ -418,42 +403,20 @@ mod tests {
         assert!(fields[0].label.contains("SOILTEMP"));
         assert!(fields[0].detail.contains("18.5"));
         assert!(fields[1].label.contains("TF_USR1"));
+        assert!(fields[1].label.contains("tf_temp_ch1"));
         assert!(fields[1].detail.contains("20.0"));
     }
 
     #[test]
-    fn test_verdict_wh34() {
-        let entries = parse_sensor_id_entries(&[31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3]);
-        let mut parsed = HashMap::new();
-        parsed.insert("soil_temp_ch1".to_string(), 18.5);
-        assert_eq!(
-            verdict(&entries, &[], &parsed),
-            SensorPathVerdict::Wh34Confirmed
-        );
-    }
-
-    #[test]
-    fn test_verdict_wh35() {
-        let entries = parse_sensor_id_entries(&[40, 0x11, 0x22, 0x33, 0x44, 50, 2]);
-        let fields = probe_livedata_fields(&[0x63, 0x00, 0xC8, 50]);
-        let parsed = HashMap::new();
-        assert_eq!(
-            verdict(&entries, &fields, &parsed),
-            SensorPathVerdict::Wh35Path
-        );
-    }
-
-    #[test]
-    fn test_verdict_tf_livedata_beats_wh34_id() {
-        // WH34 registered in SENSOR_ID, but livedata only has ITEM_TF_USR*.
+    fn test_verdict_tf_livedata() {
         let entries = parse_sensor_id_entries(&[31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3]);
         let fields = probe_livedata_fields(&[0x63, 0x00, 0xC8, 50]);
         let mut parsed = HashMap::new();
-        // Battery keys from SENSOR_ID must not count as WH34 temperature data.
-        parsed.insert("soil_temp_battery_ch1".to_string(), 1.24);
+        parsed.insert("tf_temp_ch1".to_string(), 20.0);
+        parsed.insert("tf_battery_ch1".to_string(), 1.0);
         assert_eq!(
             verdict(&entries, &fields, &parsed),
-            SensorPathVerdict::Wh35Path
+            SensorPathVerdict::TempProbeConfirmed
         );
     }
 
@@ -463,7 +426,7 @@ mod tests {
         let parsed = HashMap::new();
         assert_eq!(
             verdict(&entries, &[], &parsed),
-            SensorPathVerdict::Wh34Confirmed
+            SensorPathVerdict::TempProbeConfirmed
         );
     }
 
