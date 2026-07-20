@@ -59,20 +59,26 @@ impl Default for HttpConfig {
     }
 }
 
-/// Per-channel soil sensor reading for HTTP payloads
+/// Per-channel WH51 soil moisture reading for HTTP payloads (moisture only).
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct SoilSensorReading {
     pub channel: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub moisture: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub temperature: Option<f64>,
     /// WH51 moisture sensor battery voltage (volts)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub battery: Option<f64>,
-    /// WH34 soil temperature sensor battery voltage (volts)
+}
+
+/// Per-channel multi-channel temperature probe (WN34/WN34S via ITEM_TF_USR).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TempProbeReading {
+    pub channel: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub temp_battery: Option<f64>,
+    pub temperature: Option<f64>,
+    /// Probe battery voltage (volts)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery: Option<f64>,
 }
 
 /// Weather measurement payload matching the required schema
@@ -121,6 +127,8 @@ pub struct WeatherMeasurement {
     pub wind_speed: Option<f64>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub soil: Vec<SoilSensorReading>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub temp_probes: Vec<TempProbeReading>,
 }
 
 impl WeatherMeasurement {
@@ -146,6 +154,7 @@ impl WeatherMeasurement {
             wind_dir: data.get("wind_dir").map(|v| *v as i32),
             wind_speed: data.get("wind_speed").copied(),
             soil: Self::extract_soil(data),
+            temp_probes: Self::extract_temp_probes(data),
         }
     }
 
@@ -170,31 +179,41 @@ impl WeatherMeasurement {
             || self.wind_dir.is_some()
             || self.wind_speed.is_some()
             || !self.soil.is_empty()
+            || !self.temp_probes.is_empty()
     }
 
     fn extract_soil(data: &HashMap<String, f64>) -> Vec<SoilSensorReading> {
         let mut soil = Vec::new();
         for ch in 1..=8 {
             let moisture = data.get(&format!("soil_moisture_ch{}", ch)).copied();
-            let temperature = data.get(&format!("soil_temp_ch{}", ch)).copied();
             let battery = data.get(&format!("soil_battery_ch{}", ch)).copied();
-            let temp_battery = data.get(&format!("soil_temp_battery_ch{}", ch)).copied();
 
-            if moisture.is_some()
-                || temperature.is_some()
-                || battery.is_some()
-                || temp_battery.is_some()
-            {
+            if moisture.is_some() || battery.is_some() {
                 soil.push(SoilSensorReading {
                     channel: ch,
                     moisture,
-                    temperature,
                     battery,
-                    temp_battery,
                 });
             }
         }
         soil
+    }
+
+    fn extract_temp_probes(data: &HashMap<String, f64>) -> Vec<TempProbeReading> {
+        let mut probes = Vec::new();
+        for ch in 1..=8 {
+            let temperature = data.get(&format!("tf_temp_ch{}", ch)).copied();
+            let battery = data.get(&format!("tf_battery_ch{}", ch)).copied();
+
+            if temperature.is_some() || battery.is_some() {
+                probes.push(TempProbeReading {
+                    channel: ch,
+                    temperature,
+                    battery,
+                });
+            }
+        }
+        probes
     }
 }
 
@@ -541,19 +560,17 @@ mod tests {
         data.insert("outtemp".to_string(), 22.0);
         data.insert("soil_moisture_ch1".to_string(), 78.0);
         data.insert("soil_battery_ch1".to_string(), 1.5);
+        // Legacy soil_temp keys must not appear in soil[] (WH51 is moisture-only).
         data.insert("soil_temp_ch2".to_string(), 16.2);
-        data.insert("soil_temp_battery_ch2".to_string(), 1.24);
 
         let timestamp = Utc::now();
         let measurement = WeatherMeasurement::from_data(&data, &timestamp);
 
-        assert_eq!(measurement.soil.len(), 2);
+        assert_eq!(measurement.soil.len(), 1);
         assert_eq!(measurement.soil[0].channel, 1);
         assert_eq!(measurement.soil[0].moisture, Some(78.0));
         assert_eq!(measurement.soil[0].battery, Some(1.5));
-        assert_eq!(measurement.soil[1].channel, 2);
-        assert_eq!(measurement.soil[1].temperature, Some(16.2));
-        assert_eq!(measurement.soil[1].temp_battery, Some(1.24));
+        assert!(measurement.temp_probes.is_empty());
 
         let payload = WeatherPayload {
             weather_measurement: measurement,
@@ -561,6 +578,43 @@ mod tests {
         let json = serde_json::to_string(&payload).unwrap();
         assert!(json.contains("\"soil\""));
         assert!(json.contains("\"moisture\":78.0") || json.contains("\"moisture\":78"));
+        assert!(!json.contains("\"temperature\":16.2") && !json.contains("\"temperature\":16"));
+    }
+
+    #[test]
+    fn test_weather_measurement_with_temp_probes() {
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 25.5);
+        data.insert("tf_temp_ch1".to_string(), 23.1);
+        data.insert("tf_battery_ch1".to_string(), 1.62);
+        data.insert("tf_temp_ch2".to_string(), 19.5);
+        data.insert("tf_battery_ch2".to_string(), 1.60);
+
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+
+        assert_eq!(measurement.temperature, Some(25.5));
+        assert_eq!(measurement.temp_probes.len(), 2);
+        assert_eq!(measurement.temp_probes[0].channel, 1);
+        assert_eq!(measurement.temp_probes[0].temperature, Some(23.1));
+        assert_eq!(measurement.temp_probes[0].battery, Some(1.62));
+        assert_eq!(measurement.temp_probes[1].channel, 2);
+        assert_eq!(measurement.temp_probes[1].temperature, Some(19.5));
+        assert!(measurement.has_sensor_data());
+
+        let payload = WeatherPayload {
+            weather_measurement: measurement,
+        };
+        let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains("\"temp_probes\""));
+        assert!(json.contains("\"temperature\":23.1") || json.contains("\"temperature\":23.10"));
+    }
+
+    #[test]
+    fn test_has_sensor_data_true_for_temp_probes_only() {
+        let mut data = HashMap::new();
+        data.insert("tf_temp_ch1".to_string(), 20.0);
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert!(measurement.has_sensor_data());
     }
 
     #[test]
