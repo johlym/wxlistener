@@ -145,8 +145,11 @@ pub fn mock_livedata_response() -> Vec<u8> {
     // 0x2C: soil_moisture_ch1 = 78%
     data.extend_from_slice(&[0x2C, 0x4E]);
 
-    // 0x2B: soil_temp_ch1 = 18.5°C (185 = 0x00B9)
-    data.extend_from_slice(&[0x2B, 0x00, 0xB9]);
+    // 0x63: TF_USR1 = 23.1°C (231 = 0x00E7), battery 81 → 1.62V
+    data.extend_from_slice(&[0x63, 0x00, 0xE7, 81]);
+
+    // 0x64: TF_USR2 = 19.5°C (195 = 0x00C3), battery 80 → 1.60V
+    data.extend_from_slice(&[0x64, 0x00, 0xC3, 80]);
 
     // Calculate size: cmd(1) + size(2) + data + checksum(1)
     let size = 1 + 2 + data.len() + 1;
@@ -165,9 +168,10 @@ pub fn mock_livedata_response() -> Vec<u8> {
     response
 }
 
-/// Helper for CMD_READ_SENSOR_ID_NEW (0x3C) with one active WH51 soil moisture sensor on ch1.
+/// Helper for CMD_READ_SENSOR_ID_NEW (0x3C) with WH51 moisture + WH34 temp probes.
 /// Entry layout: type(1) + id(4) + battery(1) + signal(1).
 /// WH51 ch1 type = 14; battery 15 → 1.5 V; signal = 4.
+/// WH34 ch1 type = 31; battery present but livedata TF_USR battery should win on merge.
 pub fn mock_sensor_id_response() -> Vec<u8> {
     let mut response = vec![
         0xFF, 0xFF, // Header
@@ -179,6 +183,9 @@ pub fn mock_sensor_id_response() -> Vec<u8> {
     data.extend_from_slice(&[14, 0x12, 0x34, 0x56, 0x78, 15, 4]);
     // Disabled WH51 ch2: type=15, id=0xFFFFFFFE, battery=0, signal=0
     data.extend_from_slice(&[15, 0xFF, 0xFF, 0xFF, 0xFE, 0, 0]);
+    // WH34 ch1: type=31, id=0xAABBCCDD, battery=62 (1.24V), signal=3
+    // Livedata TF_USR1 carries 1.62V — that value must win after merge.
+    data.extend_from_slice(&[31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3]);
 
     let size = 1 + 2 + data.len() + 1;
     response.push(((size >> 8) & 0xFF) as u8);

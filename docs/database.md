@@ -102,25 +102,28 @@ The table is created automatically with the following columns:
 | `uvi`          | DOUBLE                    | UV index                           |
 | `day_max_wind` | DOUBLE                    | Daily maximum wind speed (m/s)     |
 | `soil_moisture_ch1`…`ch8` | DOUBLE | Soil moisture WH51 channels 1–8 (%) |
-| `soil_temp_ch1`…`ch8` | DOUBLE | Soil temperature WN34 channels 1–8 (°C) |
 | `soil_battery_ch1`…`ch8` | DOUBLE | WH51 battery voltage (V) |
-| `soil_temp_battery_ch1`…`ch8` | DOUBLE | WN34 battery voltage (V) |
+| `tf_temp_ch1`…`ch8` | DOUBLE | Multi-channel temp probe WN34/WN34S (°C, same scale as `outtemp`) |
+| `tf_battery_ch1`…`ch8` | DOUBLE | WN34/WN34S battery voltage (V) |
 
-**Note:** The `heap_free` field from the weather station is not stored in the database.
+**Note:** The `heap_free` field from the weather station is not stored in the database. WH51 is moisture-only; temperature probes use `tf_*` keys from `ITEM_TF_USR*`.
 
 ### Upgrading an existing table
 
-If you already have a `wx_records` table from an older wxlistener version, add the soil columns with:
+If you already have a `wx_records` table from an older wxlistener version, add columns with:
 
 ```bash
-# PostgreSQL
+# PostgreSQL — soil (WH51) columns
 psql -U postgres -d weather -f docs/sql-examples/alter-add-soil-postgres.sql
+# PostgreSQL — temp-probe (WN34/WN34S) columns
+psql -U postgres -d weather -f docs/sql-examples/alter-add-tf-postgres.sql
 
 # MySQL
 mysql -u root -p weather < docs/sql-examples/alter-add-soil-mysql.sql
+mysql -u root -p weather < docs/sql-examples/alter-add-tf-mysql.sql
 ```
 
-Without this migration, INSERTs that include soil fields will fail.
+Without this migration, INSERTs that include soil or `tf_*` fields will fail.
 
 ## Usage
 
