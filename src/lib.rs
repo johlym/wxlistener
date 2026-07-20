@@ -1,6 +1,7 @@
 pub mod client;
 pub mod config;
 pub mod database;
+pub mod debug_sensors;
 pub mod decoder;
 pub mod http_output;
 pub mod mqtt;

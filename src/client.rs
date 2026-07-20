@@ -95,44 +95,50 @@ impl GW1000Client {
     }
 
     pub fn get_livedata(&self) -> Result<HashMap<String, f64>> {
+        let data = self.fetch_livedata_payload()?;
+        let mut result = self.parse_livedata(&data)?;
+
+        // Battery status for soil sensors lives in CMD_READ_SENSOR_ID_NEW (0x3C),
+        // not in the livedata packet. Best-effort merge — livedata still succeeds
+        // if the sensor-ID call fails.
+        match self.get_soil_battery_data() {
+            Ok(battery) => result.extend(battery),
+            Err(e) => {
+                eprintln!("[WARN] Failed to read soil sensor battery status: {}", e);
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Fetch the raw CMD_GW1000_LIVEDATA payload (field TLVs only).
+    pub fn fetch_livedata_payload(&self) -> Result<Vec<u8>> {
         let packet = self.build_cmd_packet(CMD_GW1000_LIVEDATA, &[]);
         let response = self.send_cmd(&packet)?;
 
-        if self.check_response(&response, CMD_GW1000_LIVEDATA) {
-            // CMD_GW1000_LIVEDATA uses 2-byte size field (big-endian)
-            let size = ((response[3] as usize) << 8) | (response[4] as usize);
-            let data = &response[5..5 + size - 4];
-            let mut result = self.parse_livedata(data)?;
-
-            // Battery status for soil sensors lives in CMD_READ_SENSOR_ID_NEW (0x3C),
-            // not in the livedata packet. Best-effort merge — livedata still succeeds
-            // if the sensor-ID call fails.
-            match self.get_soil_battery_data() {
-                Ok(battery) => result.extend(battery),
-                Err(e) => {
-                    eprintln!("[WARN] Failed to read soil sensor battery status: {}", e);
-                }
-            }
-
-            Ok(result)
-        } else {
-            anyhow::bail!("Invalid live data response")
+        if !self.check_response(&response, CMD_GW1000_LIVEDATA) {
+            anyhow::bail!("Invalid live data response");
         }
+        if response.len() < 6 {
+            anyhow::bail!("Livedata response too short");
+        }
+        // CMD_GW1000_LIVEDATA uses 2-byte size field (big-endian)
+        let size = ((response[3] as usize) << 8) | (response[4] as usize);
+        let end = 5 + size.saturating_sub(4);
+        if end > response.len() {
+            anyhow::bail!("Livedata response size exceeds packet length");
+        }
+        Ok(response[5..end].to_vec())
     }
 
-    /// Read CMD_READ_SENSOR_ID_NEW and extract WH51 / WH34 soil battery values.
-    ///
-    /// WH51 (moisture): battery byte is voltage × 10 (volts = val × 0.1).
-    /// WH34 (soil temp): battery byte is voltage × 50 (volts = val × 0.02).
-    fn get_soil_battery_data(&self) -> Result<HashMap<String, f64>> {
+    /// Fetch the raw CMD_READ_SENSOR_ID_NEW payload.
+    pub fn fetch_sensor_id_payload(&self) -> Result<Vec<u8>> {
         let packet = self.build_cmd_packet(CMD_READ_SENSOR_ID_NEW, &[]);
         let response = self.send_cmd(&packet)?;
 
         if !self.check_response(&response, CMD_READ_SENSOR_ID_NEW) {
             anyhow::bail!("Invalid sensor ID response");
         }
-
-        // Response size is 2 bytes (same as livedata)
         if response.len() < 6 {
             anyhow::bail!("Sensor ID response too short");
         }
@@ -141,8 +147,21 @@ impl GW1000Client {
         if end > response.len() {
             anyhow::bail!("Sensor ID response size exceeds packet length");
         }
-        let data = &response[5..end];
-        Ok(Self::parse_soil_battery(data))
+        Ok(response[5..end].to_vec())
+    }
+
+    /// Public wrapper for debug tooling.
+    pub fn parse_livedata_public(&self, data: &[u8]) -> Result<HashMap<String, f64>> {
+        self.parse_livedata(data)
+    }
+
+    /// Read CMD_READ_SENSOR_ID_NEW and extract WH51 / WH34 soil battery values.
+    ///
+    /// WH51 (moisture): battery byte is voltage × 10 (volts = val × 0.1).
+    /// WH34 (soil temp): battery byte is voltage × 50 (volts = val × 0.02).
+    fn get_soil_battery_data(&self) -> Result<HashMap<String, f64>> {
+        let data = self.fetch_sensor_id_payload()?;
+        Ok(Self::parse_soil_battery(&data))
     }
 
     /// Parse sensor-ID payload entries: type(1) + id(4) + battery(1) + signal(1).

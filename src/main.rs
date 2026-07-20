@@ -1,6 +1,7 @@
 mod client;
 mod config;
 mod database;
+mod debug_sensors;
 mod decoder;
 mod http_output;
 mod mqtt;
@@ -16,6 +17,7 @@ use std::time::Duration;
 use client::GW1000Client;
 use config::Args;
 use database::DatabaseWriter;
+use debug_sensors::run_debug_sensors;
 use http_output::HttpPublisher;
 use mqtt::MqttPublisher;
 use output::print_livedata;
@@ -50,6 +52,12 @@ async fn main() -> Result<()> {
     };
 
     let client = GW1000Client::new(ip.clone(), port);
+
+    // One-shot sensor inventory probe (WN34S / WH34 validation)
+    if args.debug_sensors {
+        run_debug_sensors(&client)?;
+        return Ok(());
+    }
 
     // Initialize database writer if configured
     let db_writer = if let Some(db_config) = args.get_database_config()? {
@@ -186,13 +194,11 @@ async fn main() -> Result<()> {
                     publisher.publish(&data, &timestamp).await;
                 }
 
-                // Display output only if no output sink is configured
-                if db_writer.is_none() && mqtt_publisher.is_none() && http_publisher.is_none() {
-                    if args.format == "json" {
-                        println!("{}", serde_json::to_string_pretty(&data)?);
-                    } else {
-                        print_livedata(&data, &timestamp);
-                    }
+                // Always print each measurement, regardless of configured sinks
+                if args.format == "json" {
+                    println!("{}", serde_json::to_string_pretty(&data)?);
+                } else {
+                    print_livedata(&data, &timestamp);
                 }
             }
             Err(e) => eprintln!("Error: {}", e),
