@@ -235,6 +235,7 @@ pub fn verdict(
     let has_wh34_id = entries
         .iter()
         .any(|e| e.is_active() && (WH34_SENSOR_CH1..=WH34_SENSOR_CH8).contains(&e.sensor_type));
+    // soil_temp_ch* only (not soil_temp_battery_ch* from SENSOR_ID).
     let has_soil_temp = parsed.keys().any(|k| k.starts_with("soil_temp_ch"))
         || livedata_fields.iter().any(|f| f.label.contains("SOILTEMP"));
     let has_wh35_id = entries
@@ -242,9 +243,15 @@ pub fn verdict(
         .any(|e| e.is_active() && (WH35_SENSOR_CH1..=WH35_SENSOR_CH8).contains(&e.sensor_type));
     let has_tf = livedata_fields.iter().any(|f| f.label.contains("TF_USR"));
 
-    if has_wh34_id || has_soil_temp {
+    // Livedata path evidence beats SENSOR_ID registration: a WH34 ID can remain
+    // active while the gateway only emits ITEM_TF_USR* (WH35 path).
+    if has_soil_temp {
         SensorPathVerdict::Wh34Confirmed
-    } else if has_wh35_id || has_tf {
+    } else if has_tf {
+        SensorPathVerdict::Wh35Path
+    } else if has_wh34_id {
+        SensorPathVerdict::Wh34Confirmed
+    } else if has_wh35_id {
         SensorPathVerdict::Wh35Path
     } else {
         SensorPathVerdict::NoneFound
@@ -433,6 +440,30 @@ mod tests {
         assert_eq!(
             verdict(&entries, &fields, &parsed),
             SensorPathVerdict::Wh35Path
+        );
+    }
+
+    #[test]
+    fn test_verdict_tf_livedata_beats_wh34_id() {
+        // WH34 registered in SENSOR_ID, but livedata only has ITEM_TF_USR*.
+        let entries = parse_sensor_id_entries(&[31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3]);
+        let fields = probe_livedata_fields(&[0x63, 0x00, 0xC8, 50]);
+        let mut parsed = HashMap::new();
+        // Battery keys from SENSOR_ID must not count as WH34 temperature data.
+        parsed.insert("soil_temp_battery_ch1".to_string(), 1.24);
+        assert_eq!(
+            verdict(&entries, &fields, &parsed),
+            SensorPathVerdict::Wh35Path
+        );
+    }
+
+    #[test]
+    fn test_verdict_wh34_id_only() {
+        let entries = parse_sensor_id_entries(&[31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3]);
+        let parsed = HashMap::new();
+        assert_eq!(
+            verdict(&entries, &[], &parsed),
+            SensorPathVerdict::Wh34Confirmed
         );
     }
 
