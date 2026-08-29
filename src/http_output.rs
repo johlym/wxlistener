@@ -188,7 +188,9 @@ impl WeatherMeasurement {
             let moisture = data.get(&format!("soil_moisture_ch{}", ch)).copied();
             let battery = data.get(&format!("soil_battery_ch{}", ch)).copied();
 
-            if moisture.is_some() || battery.is_some() {
+            // SENSOR_ID can report battery after livedata omitted moisture.
+            // Battery-only rows 422 the ingest API and drop the whole reading.
+            if moisture.is_some() {
                 soil.push(SoilSensorReading {
                     channel: ch,
                     moisture,
@@ -205,7 +207,9 @@ impl WeatherMeasurement {
             let temperature = data.get(&format!("tf_temp_ch{}", ch)).copied();
             let battery = data.get(&format!("tf_battery_ch{}", ch)).copied();
 
-            if temperature.is_some() || battery.is_some() {
+            // SENSOR_ID can report battery after livedata omitted ITEM_TF_USR.
+            // Battery-only rows 422 the ingest API and drop the whole reading.
+            if temperature.is_some() {
                 probes.push(TempProbeReading {
                     channel: ch,
                     temperature,
@@ -615,6 +619,36 @@ mod tests {
         data.insert("tf_temp_ch1".to_string(), 20.0);
         let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
         assert!(measurement.has_sensor_data());
+    }
+
+    #[test]
+    fn test_omits_battery_only_temp_probes() {
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 22.0);
+        data.insert("tf_battery_ch1".to_string(), 1.55);
+        data.insert("tf_temp_ch2".to_string(), 11.0);
+        data.insert("tf_battery_ch2".to_string(), 1.40);
+
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert_eq!(measurement.temp_probes.len(), 1);
+        assert_eq!(measurement.temp_probes[0].channel, 2);
+        assert_eq!(measurement.temp_probes[0].temperature, Some(11.0));
+        assert_eq!(measurement.temp_probes[0].battery, Some(1.40));
+    }
+
+    #[test]
+    fn test_omits_battery_only_soil() {
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 22.0);
+        data.insert("soil_battery_ch1".to_string(), 1.6);
+        data.insert("soil_moisture_ch2".to_string(), 40.0);
+        data.insert("soil_battery_ch2".to_string(), 1.5);
+
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert_eq!(measurement.soil.len(), 1);
+        assert_eq!(measurement.soil[0].channel, 2);
+        assert_eq!(measurement.soil[0].moisture, Some(40.0));
+        assert_eq!(measurement.soil[0].battery, Some(1.5));
     }
 
     #[test]
