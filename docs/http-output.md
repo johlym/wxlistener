@@ -190,14 +190,27 @@ authorization = "Basic dXNlcm5hbWU6cGFzc3dvcmQ="
 
 ## Error Handling
 
-wxlistener will exit with an error if HTTP publishing fails. Common error scenarios:
+Startup still fails if the URL is missing or malformed (`[ERROR] HTTP configuration failed`, process exits). A bad **payload** no longer exits the process (unlike MQTT or database errors in the same loop).
 
-| Error                                 | Cause                    | Solution                               |
-| ------------------------------------- | ------------------------ | -------------------------------------- |
-| "Invalid HTTP endpoint URL"           | Malformed URL            | Check URL format (must include scheme) |
-| "Failed to send HTTP request"         | Network/connection error | Verify endpoint is reachable           |
-| "HTTP request failed with status XXX" | Server returned error    | Check server logs, authentication      |
-| "request timed out"                   | Endpoint too slow        | Increase `timeout` value               |
+`HttpPublisher` classifies each POST:
+
+| Outcome | Status / cause | What happens |
+| ------- | -------------- | ------------ |
+| Success | 2xx | Record logged `[OK]` and discarded |
+| Transient | Network error, timeout, **5xx**, **429**, unexpected 3xx | Queued and retried every **1s** (front of queue stays until it succeeds or becomes permanent) |
+| Permanent | Other **4xx** (401, 403, 404, 422, …) | Dropped immediately (`[DROP]`) so a bad reading cannot block later good ones |
+| Skip | Timestamp-only payload (`has_sensor_data` is false) | Never queued (`[SKIP]`) |
+
+While a drain is in progress, new readings append to the in-memory queue (`[QUEUE]`). The queue is **process-local** — a restart loses it. There is no disk buffer and no max-retry cap; a long 5xx outage keeps retrying the front item.
+
+leahillwx ingest expects **204** (single) or **202** (bulk). Any 2xx from your endpoint is treated as success.
+
+| Log / message | Cause | What to do |
+| ------------- | ----- | ---------- |
+| "Invalid HTTP endpoint URL" | Malformed URL at startup | Include a scheme (`https://…`) |
+| `[WARN] HTTP publish failed (will retry)` / `retrying in 1s` | Transient failure | Check reachability; raise `timeout` if the endpoint is slow |
+| `[DROP] HTTP: permanent failure` | 4xx (not 429) | Fix auth or payload; that reading is gone |
+| `[SKIP] HTTP: incomplete reading` | Poll produced no sensor fields | Gateway livedata was empty; not a config error |
 
 ## Integration Examples
 
@@ -271,32 +284,27 @@ Configure the webhook URL as your `[http].url` and add any required authenticati
 
 **Solution**: Ensure `url` is set in config or `WXLISTENER_HTTP_URL` environment variable.
 
-### "Failed to send HTTP request"
+### `[WARN] HTTP publish failed (will retry)` / `connection failed`
 
-**Cause**: Network connectivity issue or endpoint not reachable.
+**Cause**: Network blip, timeout, 5xx, or 429. The reading is queued, not dropped.
 
 **Solutions**:
 
 - Verify the endpoint URL is correct
 - Check network connectivity: `curl -v <your-url>`
 - Ensure firewall allows outbound connections
-- Check if the endpoint requires VPN access
+- Increase `timeout` if the endpoint is slow
+- Confirm the process stays up; a restart empties the in-memory retry queue
 
-### "HTTP request failed with status 401"
+### `[DROP] HTTP: permanent failure` / status 401
 
-**Cause**: Authentication required or invalid credentials.
-
-**Solution**: Verify `authorization` header value matches what the endpoint expects.
-
-### "HTTP request failed with status 4XX/5XX"
-
-**Cause**: Server rejected the request.
+**Cause**: The endpoint rejected the payload (4xx other than 429). That reading is discarded.
 
 **Solutions**:
 
-- Check endpoint server logs for details
-- Verify the endpoint accepts POST requests with JSON body
-- Ensure Content-Type: application/json is accepted
+- Verify `authorization` matches what the endpoint expects (`Bearer …` for leahillwx `MEASUREMENT_API_KEY`)
+- Confirm the path accepts POST + `application/json`
+- Check server logs; a 422 usually means a required field is missing
 
 ### Request Timeouts
 
