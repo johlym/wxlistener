@@ -89,6 +89,14 @@ Data is POSTed as JSON with the following structure:
         "battery": float
       }
     ],
+    "temp_humidity": [
+      {
+        "channel": integer,
+        "temperature": float,
+        "humidity": integer,
+        "battery_low": boolean
+      }
+    ],
     "temp_probes": [
       {
         "channel": integer,
@@ -127,11 +135,15 @@ Data is POSTed as JSON with the following structure:
 | `soil[].channel`    | (1–8)                 | integer | WH51 soil moisture channel           |
 | `soil[].moisture`   | `soil_moisture_chN`   | float   | WH51 soil moisture (%)               |
 | `soil[].battery`    | `soil_battery_chN`    | float   | WH51 battery voltage (V)             |
+| `temp_humidity[].channel` | (1–8)           | integer | WH31/WN31 dip-switch channel         |
+| `temp_humidity[].temperature` | `th_temp_chN` | float | WH31/WN31 temperature (°C)         |
+| `temp_humidity[].humidity` | `th_humid_chN`   | integer | WH31/WN31 humidity (%)             |
+| `temp_humidity[].battery_low` | `th_battery_low_chN` | boolean | true when battery low         |
 | `temp_probes[].channel` | (1–8)             | integer | Multi-channel temp probe channel     |
 | `temp_probes[].temperature` | `tf_temp_chN` | float   | WN34/WN34S temperature (°C, same as `temperature`) |
 | `temp_probes[].battery` | `tf_battery_chN`  | float   | WN34/WN34S battery voltage (V)       |
 
-**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil` and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`.
+**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
 
 ### Example Payload
 
@@ -155,7 +167,15 @@ Data is POSTed as JSON with the following structure:
     "uv": 5,
     "uvi": 3,
     "wind_dir": 180,
-    "wind_speed": 5.5
+    "wind_speed": 5.5,
+    "temp_humidity": [
+      {
+        "channel": 1,
+        "temperature": 27.6,
+        "humidity": 40,
+        "battery_low": false
+      }
+    ]
   }
 }
 ```

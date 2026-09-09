@@ -23,6 +23,13 @@ pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
 
 pub fn format_value(key: &str, value: f64) -> String {
     match key {
+        k if k.starts_with("th_battery_low_ch") => {
+            if value >= 1.0 {
+                "low".to_string()
+            } else {
+                "ok".to_string()
+            }
+        }
         k if k.starts_with("soil_moisture_ch") => format!("{}%", value as i32),
         k if k.starts_with("soil_battery_ch")
             || k.starts_with("soil_temp_battery_ch")
@@ -32,6 +39,7 @@ pub fn format_value(key: &str, value: f64) -> String {
         }
         k if k.starts_with("soil_temp_ch")
             || k.starts_with("tf_temp_ch")
+            || k.starts_with("th_temp_ch")
             || ((k.contains("temp")
                 || k == "dewpoint"
                 || k == "windchill"
@@ -132,6 +140,14 @@ mod tests {
             format_value("tf_temp_ch1", 25.5),
             format_value("outtemp", 25.5)
         );
+    }
+
+    #[test]
+    fn test_format_value_wn31_temp_humidity() {
+        assert_eq!(format_value("th_temp_ch1", 27.6), "27.6°C");
+        assert_eq!(format_value("th_humid_ch1", 40.0), "40%");
+        assert_eq!(format_value("th_battery_low_ch1", 0.0), "ok");
+        assert_eq!(format_value("th_battery_low_ch2", 1.0), "low");
     }
 
     #[test]

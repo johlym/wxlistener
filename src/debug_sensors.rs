@@ -71,7 +71,7 @@ pub fn sensor_type_label(sensor_type: u8) -> String {
         3 => "WH40 rain".to_string(),
         4 => "WH25 indoor".to_string(),
         5 => "WH26 temp/humid".to_string(),
-        t if (6..=13).contains(&t) => format!("WH31 temp/humid ch{}", t - 5),
+        t if (6..=13).contains(&t) => format!("WH31/WN31 temp/humid ch{}", t - 5),
         t if (WH51_SENSOR_CH1..=WH51_SENSOR_CH8).contains(&t) => {
             format!("WH51 soil moisture ch{}", t - WH51_SENSOR_CH1 + 1)
         }
@@ -155,6 +155,34 @@ pub fn probe_livedata_fields(data: &[u8]) -> Vec<LivedataProbeField> {
                     break;
                 }
             }
+            a if (0x1A..=0x21).contains(&a) => {
+                let ch = a - 0x19;
+                if index + 2 < data.len() {
+                    let temp = decode_temp(&data[index + 1..index + 3]);
+                    fields.push(LivedataProbeField {
+                        addr,
+                        label: format!("ITEM_TEMP{} → th_temp_ch{} (WH31/WN31)", ch, ch),
+                        detail: format!("{:.1}°C", temp),
+                    });
+                    index += 3;
+                } else {
+                    break;
+                }
+            }
+            a if (0x22..=0x29).contains(&a) => {
+                let ch = a - 0x21;
+                if index + 1 < data.len() {
+                    let humid = data[index + 1];
+                    fields.push(LivedataProbeField {
+                        addr,
+                        label: format!("ITEM_HUMI{} → th_humid_ch{} (WH31/WN31)", ch, ch),
+                        detail: format!("{}%", humid),
+                    });
+                    index += 2;
+                } else {
+                    break;
+                }
+            }
             _ => {
                 // Skip known TLV value sizes; unknown addresses advance one byte
                 // (same strategy as production parse_livedata).
@@ -197,6 +225,7 @@ fn livedata_value_size(addr: u8) -> Option<usize> {
         0x17 => Some(1),        // uvi
         0x18 => Some(6),        // time
         0x19 => Some(2),        // day max wind
+        // WH31/WN31 ITEM_TEMP / ITEM_HUMI handled explicitly in probe walk
         // soil moisture (WH51)
         0x2C | 0x2E | 0x30 | 0x32 | 0x34 | 0x36 | 0x38 | 0x3A => Some(1),
         0x6C => Some(4), // heap
@@ -372,6 +401,8 @@ mod tests {
         assert!(sensor_type_label(38).contains("ch8"));
         assert!(sensor_type_label(40).contains("leaf wetness"));
         assert!(sensor_type_label(14).contains("WH51"));
+        assert!(sensor_type_label(6).contains("WN31"));
+        assert!(sensor_type_label(6).contains("ch1"));
     }
 
     #[test]

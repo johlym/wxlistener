@@ -83,6 +83,8 @@ fn test_client_get_livedata() {
     // Check specific fields we know are in the mock response
     assert!(data.contains_key("outtemp"));
     assert!(data.contains_key("outhumid"));
+    assert!(data.contains_key("th_temp_ch1"));
+    assert!(data.contains_key("th_humid_ch1"));
     assert!(data.contains_key("soil_moisture_ch1"));
     assert!(data.contains_key("soil_battery_ch1"));
     assert!(data.contains_key("tf_temp_ch1"));
@@ -92,6 +94,9 @@ fn test_client_get_livedata() {
     // Verify values (°C via same decode_temp path as outtemp)
     assert_eq!(data.get("outtemp"), Some(&25.5));
     assert_eq!(data.get("outhumid"), Some(&65.0));
+    assert_eq!(data.get("th_temp_ch1"), Some(&27.6));
+    assert_eq!(data.get("th_humid_ch1"), Some(&40.0));
+    assert_eq!(data.get("th_battery_low_ch1"), Some(&0.0));
     assert_eq!(data.get("soil_moisture_ch1"), Some(&78.0));
     assert_eq!(data.get("soil_battery_ch1"), Some(&1.5));
     assert_eq!(data.get("tf_temp_ch1"), Some(&23.1));

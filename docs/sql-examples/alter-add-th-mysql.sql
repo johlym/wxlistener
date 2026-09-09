@@ -1,0 +1,27 @@
+-- Add WH31/WN31 dip-switch temp+humidity columns to an existing MySQL table.
+
+ALTER TABLE wx_records
+    ADD COLUMN th_temp_ch1 DOUBLE NULL,
+    ADD COLUMN th_temp_ch2 DOUBLE NULL,
+    ADD COLUMN th_temp_ch3 DOUBLE NULL,
+    ADD COLUMN th_temp_ch4 DOUBLE NULL,
+    ADD COLUMN th_temp_ch5 DOUBLE NULL,
+    ADD COLUMN th_temp_ch6 DOUBLE NULL,
+    ADD COLUMN th_temp_ch7 DOUBLE NULL,
+    ADD COLUMN th_temp_ch8 DOUBLE NULL,
+    ADD COLUMN th_humid_ch1 DOUBLE NULL,
+    ADD COLUMN th_humid_ch2 DOUBLE NULL,
+    ADD COLUMN th_humid_ch3 DOUBLE NULL,
+    ADD COLUMN th_humid_ch4 DOUBLE NULL,
+    ADD COLUMN th_humid_ch5 DOUBLE NULL,
+    ADD COLUMN th_humid_ch6 DOUBLE NULL,
+    ADD COLUMN th_humid_ch7 DOUBLE NULL,
+    ADD COLUMN th_humid_ch8 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch1 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch2 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch3 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch4 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch5 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch6 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch7 DOUBLE NULL,
+    ADD COLUMN th_battery_low_ch8 DOUBLE NULL;
