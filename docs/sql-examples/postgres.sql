@@ -84,7 +84,33 @@ CREATE TABLE IF NOT EXISTS wx_records (
     tf_battery_ch5 DOUBLE PRECISION,
     tf_battery_ch6 DOUBLE PRECISION,
     tf_battery_ch7 DOUBLE PRECISION,
-    tf_battery_ch8 DOUBLE PRECISION
+    tf_battery_ch8 DOUBLE PRECISION,
+    -- WH31/WN31 dip-switch temp+humidity channels 1–8 (°C / %)
+    th_temp_ch1 DOUBLE PRECISION,
+    th_temp_ch2 DOUBLE PRECISION,
+    th_temp_ch3 DOUBLE PRECISION,
+    th_temp_ch4 DOUBLE PRECISION,
+    th_temp_ch5 DOUBLE PRECISION,
+    th_temp_ch6 DOUBLE PRECISION,
+    th_temp_ch7 DOUBLE PRECISION,
+    th_temp_ch8 DOUBLE PRECISION,
+    th_humid_ch1 DOUBLE PRECISION,
+    th_humid_ch2 DOUBLE PRECISION,
+    th_humid_ch3 DOUBLE PRECISION,
+    th_humid_ch4 DOUBLE PRECISION,
+    th_humid_ch5 DOUBLE PRECISION,
+    th_humid_ch6 DOUBLE PRECISION,
+    th_humid_ch7 DOUBLE PRECISION,
+    th_humid_ch8 DOUBLE PRECISION,
+    -- WH31/WN31 battery: 1 = low, 0 = normal
+    th_battery_low_ch1 DOUBLE PRECISION,
+    th_battery_low_ch2 DOUBLE PRECISION,
+    th_battery_low_ch3 DOUBLE PRECISION,
+    th_battery_low_ch4 DOUBLE PRECISION,
+    th_battery_low_ch5 DOUBLE PRECISION,
+    th_battery_low_ch6 DOUBLE PRECISION,
+    th_battery_low_ch7 DOUBLE PRECISION,
+    th_battery_low_ch8 DOUBLE PRECISION
 );
 
 -- Create an index on timestamp for faster queries

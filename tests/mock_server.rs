@@ -148,6 +148,12 @@ pub fn mock_livedata_response() -> Vec<u8> {
     // 0x07: outhumid = 65%
     data.extend_from_slice(&[0x07, 0x41]);
 
+    // 0x1A: th_temp_ch1 = 27.6°C (276 = 0x0114) — WH31/WN31 channel 1
+    data.extend_from_slice(&[0x1A, 0x01, 0x14]);
+
+    // 0x22: th_humid_ch1 = 40%
+    data.extend_from_slice(&[0x22, 40]);
+
     // 0x2C: soil_moisture_ch1 = 78%
     data.extend_from_slice(&[0x2C, 0x4E]);
 
@@ -174,8 +180,9 @@ pub fn mock_livedata_response() -> Vec<u8> {
     response
 }
 
-/// Helper for CMD_READ_SENSOR_ID_NEW (0x3C) with WH51 moisture + WH34 temp probes.
+/// Helper for CMD_READ_SENSOR_ID_NEW (0x3C) with WH31 + WH51 + WH34 sensors.
 /// Entry layout: type(1) + id(4) + battery(1) + signal(1).
+/// WH31/WN31 ch1 type = 6; battery 0 = ok; signal = 4.
 /// WH51 ch1 type = 14; battery 15 → 1.5 V; signal = 4.
 /// WH34 ch1 type = 31; battery present but livedata TF_USR battery should win on merge.
 pub fn mock_sensor_id_response() -> Vec<u8> {
@@ -185,6 +192,8 @@ pub fn mock_sensor_id_response() -> Vec<u8> {
     ];
 
     let mut data = Vec::new();
+    // WH31/WN31 channel 1: type=6, id=0x01020304, battery=0 (ok), signal=4
+    data.extend_from_slice(&[6, 0x01, 0x02, 0x03, 0x04, 0, 4]);
     // WH51 channel 1: type=14, id=0x12345678, battery=15 (1.5V), signal=4
     data.extend_from_slice(&[14, 0x12, 0x34, 0x56, 0x78, 15, 4]);
     // Disabled WH51 ch2: type=15, id=0xFFFFFFFE, battery=0, signal=0

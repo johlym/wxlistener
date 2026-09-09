@@ -81,6 +81,19 @@ pub struct TempProbeReading {
     pub battery: Option<f64>,
 }
 
+/// Per-channel WH31/WN31 temp+humidity sensor (dip-switch channels 1–8).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TempHumidityReading {
+    pub channel: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub humidity: Option<i32>,
+    /// True when SENSOR_ID reports battery low (1); false when normal (0).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery_low: Option<bool>,
+}
+
 /// Weather measurement payload matching the required schema
 #[derive(Debug, Serialize)]
 #[allow(dead_code)]
@@ -134,6 +147,8 @@ pub struct WeatherMeasurement {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub soil: Vec<SoilSensorReading>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub temp_humidity: Vec<TempHumidityReading>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub temp_probes: Vec<TempProbeReading>,
 }
 
@@ -162,6 +177,7 @@ impl WeatherMeasurement {
             wind_dir: data.get("wind_dir").map(|v| *v as i32),
             wind_speed: data.get("wind_speed").copied(),
             soil: Self::extract_soil(data),
+            temp_humidity: Self::extract_temp_humidity(data),
             temp_probes: Self::extract_temp_probes(data),
         }
     }
@@ -189,6 +205,7 @@ impl WeatherMeasurement {
             || self.wind_dir.is_some()
             || self.wind_speed.is_some()
             || !self.soil.is_empty()
+            || !self.temp_humidity.is_empty()
             || !self.temp_probes.is_empty()
     }
 
@@ -207,6 +224,28 @@ impl WeatherMeasurement {
             }
         }
         soil
+    }
+
+    fn extract_temp_humidity(data: &HashMap<String, f64>) -> Vec<TempHumidityReading> {
+        let mut sensors = Vec::new();
+        for ch in 1..=8 {
+            let temperature = data.get(&format!("th_temp_ch{}", ch)).copied();
+            let humidity = data.get(&format!("th_humid_ch{}", ch)).map(|v| *v as i32);
+            let battery_low = data
+                .get(&format!("th_battery_low_ch{}", ch))
+                .map(|v| *v >= 1.0);
+
+            // Require a reading — do not emit battery-only rows.
+            if temperature.is_some() || humidity.is_some() {
+                sensors.push(TempHumidityReading {
+                    channel: ch,
+                    temperature,
+                    humidity,
+                    battery_low,
+                });
+            }
+        }
+        sensors
     }
 
     fn extract_temp_probes(data: &HashMap<String, f64>) -> Vec<TempProbeReading> {
@@ -648,6 +687,37 @@ mod tests {
         let json = serde_json::to_string(&payload).unwrap();
         assert!(json.contains("\"temp_probes\""));
         assert!(json.contains("\"temperature\":23.1") || json.contains("\"temperature\":23.10"));
+    }
+
+    #[test]
+    fn test_weather_measurement_with_wn31_temp_humidity() {
+        let mut data = HashMap::new();
+        data.insert("th_temp_ch1".to_string(), 27.6);
+        data.insert("th_humid_ch1".to_string(), 40.0);
+        data.insert("th_battery_low_ch1".to_string(), 0.0);
+        // Battery-only channel must not appear
+        data.insert("th_battery_low_ch3".to_string(), 1.0);
+
+        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+
+        assert_eq!(measurement.temp_humidity.len(), 1);
+        assert_eq!(measurement.temp_humidity[0].channel, 1);
+        assert_eq!(measurement.temp_humidity[0].temperature, Some(27.6));
+        assert_eq!(measurement.temp_humidity[0].humidity, Some(40));
+        assert_eq!(measurement.temp_humidity[0].battery_low, Some(false));
+        assert!(measurement.has_sensor_data());
+
+        let payload = WeatherPayload {
+            weather_measurement: measurement,
+        };
+        let value: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&payload).unwrap()).unwrap();
+        let th = &value["weather_measurement"]["temp_humidity"];
+        assert_eq!(th.as_array().unwrap().len(), 1);
+        assert_eq!(th[0]["channel"], 1);
+        assert_eq!(th[0]["temperature"], 27.6);
+        assert_eq!(th[0]["humidity"], 40);
+        assert_eq!(th[0]["battery_low"], false);
     }
 
     #[test]

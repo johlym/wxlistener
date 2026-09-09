@@ -16,6 +16,10 @@ const CMD_READ_SENSOR_ID_NEW: u8 = 0x3C;
 // Protocol constants
 const SOCKET_TIMEOUT: Duration = Duration::from_secs(16);
 
+/// SENSOR_IDT indices for WH31/WN31 temp+humidity dip-switch channels 1–8
+const WH31_SENSOR_CH1: u8 = 6;
+const WH31_SENSOR_CH8: u8 = 13;
+
 /// SENSOR_IDT indices for WH51 soil moisture channels 1–8
 const WH51_SENSOR_CH1: u8 = 14;
 const WH51_SENSOR_CH8: u8 = 21;
@@ -98,17 +102,17 @@ impl GW1000Client {
         let data = self.fetch_livedata_payload()?;
         let mut result = self.parse_livedata(&data)?;
 
-        // Battery status for WH51 / WH34 lives in CMD_READ_SENSOR_ID_NEW (0x3C).
+        // Battery status for WH31 / WH51 / WH34 lives in CMD_READ_SENSOR_ID_NEW (0x3C).
         // Best-effort merge — livedata still succeeds if the sensor-ID call fails.
         // Prefer livedata values (e.g. TF_USR in-band battery) over SENSOR_ID.
-        match self.get_soil_battery_data() {
+        match self.get_sensor_battery_data() {
             Ok(battery) => {
                 for (k, v) in battery {
                     result.entry(k).or_insert(v);
                 }
             }
             Err(e) => {
-                eprintln!("[WARN] Failed to read soil sensor battery status: {}", e);
+                eprintln!("[WARN] Failed to read sensor battery status: {}", e);
             }
         }
 
@@ -159,17 +163,18 @@ impl GW1000Client {
         self.parse_livedata(data)
     }
 
-    /// Read CMD_READ_SENSOR_ID_NEW and extract WH51 / WH34 battery values.
+    /// Read CMD_READ_SENSOR_ID_NEW and extract WH31 / WH51 / WH34 battery values.
     ///
+    /// WH31/WN31 (temp+humidity): battery byte is 1 = low, 0 = normal.
     /// WH51 (moisture): battery byte is voltage × 10 (volts = val × 0.1).
     /// WH34 (temp probe): battery byte is voltage × 50 (volts = val × 0.02).
-    fn get_soil_battery_data(&self) -> Result<HashMap<String, f64>> {
+    fn get_sensor_battery_data(&self) -> Result<HashMap<String, f64>> {
         let data = self.fetch_sensor_id_payload()?;
-        Ok(Self::parse_soil_battery(&data))
+        Ok(Self::parse_sensor_battery(&data))
     }
 
     /// Parse sensor-ID payload entries: type(1) + id(4) + battery(1) + signal(1).
-    fn parse_soil_battery(data: &[u8]) -> HashMap<String, f64> {
+    fn parse_sensor_battery(data: &[u8]) -> HashMap<String, f64> {
         let mut result = HashMap::new();
         let mut index = 0;
 
@@ -194,7 +199,11 @@ impl GW1000Client {
                 continue;
             }
 
-            if (WH51_SENSOR_CH1..=WH51_SENSOR_CH8).contains(&sensor_type) {
+            if (WH31_SENSOR_CH1..=WH31_SENSOR_CH8).contains(&sensor_type) {
+                let ch = (sensor_type - WH31_SENSOR_CH1) + 1;
+                // WH31/WN31: 1 = battery low, 0 = normal
+                result.insert(format!("th_battery_low_ch{}", ch), battery as f64);
+            } else if (WH51_SENSOR_CH1..=WH51_SENSOR_CH8).contains(&sensor_type) {
                 let ch = (sensor_type - WH51_SENSOR_CH1) + 1;
                 // WH51: volts = val × 0.1
                 result.insert(format!("soil_battery_ch{}", ch), battery as f64 * 0.1);
@@ -434,6 +443,34 @@ impl GW1000Client {
                         break;
                     }
                 }
+                // WH31/WN31 dip-switch temp+humidity channels 1–8:
+                // ITEM_TEMP1–8 (0x1A–0x21): 2-byte signed temp ×10 (°C)
+                0x1A..=0x21 => {
+                    if let Some(ch) = th_temp_channel(field_addr) {
+                        if index + 2 < data.len() {
+                            let val = decode_temp(&data[index + 1..index + 3]);
+                            result.insert(format!("th_temp_ch{}", ch), val);
+                            index += 3;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        index += 1;
+                    }
+                }
+                // ITEM_HUMI1–8 (0x22–0x29): 1-byte percent
+                0x22..=0x29 => {
+                    if let Some(ch) = th_humid_channel(field_addr) {
+                        if index + 1 < data.len() {
+                            result.insert(format!("th_humid_ch{}", ch), data[index + 1] as f64);
+                            index += 2;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        index += 1;
+                    }
+                }
                 // Legacy ITEM_SOILTEMP channels 1–8: 2-byte signed temp ×10 (°C).
                 // Modern WN34/WN34S probes use ITEM_TF_USR instead.
                 0x2B | 0x2D | 0x2F | 0x31 | 0x33 | 0x35 | 0x37 | 0x39 => {
@@ -529,6 +566,34 @@ fn soil_moisture_channel(addr: u8) -> Option<u8> {
     }
 }
 
+fn th_temp_channel(addr: u8) -> Option<u8> {
+    match addr {
+        0x1A => Some(1),
+        0x1B => Some(2),
+        0x1C => Some(3),
+        0x1D => Some(4),
+        0x1E => Some(5),
+        0x1F => Some(6),
+        0x20 => Some(7),
+        0x21 => Some(8),
+        _ => None,
+    }
+}
+
+fn th_humid_channel(addr: u8) -> Option<u8> {
+    match addr {
+        0x22 => Some(1),
+        0x23 => Some(2),
+        0x24 => Some(3),
+        0x25 => Some(4),
+        0x26 => Some(5),
+        0x27 => Some(6),
+        0x28 => Some(7),
+        0x29 => Some(8),
+        _ => None,
+    }
+}
+
 fn tf_usr_channel(addr: u8) -> Option<u8> {
     match addr {
         0x63 => Some(1),
@@ -590,17 +655,42 @@ mod tests {
     #[test]
     fn test_parse_soil_battery() {
         let data = [
-            // WH51 ch1: type=14, id=0x12345678, battery=15 → 1.5V, signal=4
+            // WH31/WN31 ch1: type=6, id=0x01020304, battery=0 (ok), signal=4
+            6, 0x01, 0x02, 0x03, 0x04, 0,
+            4, // WH51 ch1: type=14, id=0x12345678, battery=15 → 1.5V, signal=4
             14, 0x12, 0x34, 0x56, 0x78, 15, 4, // WH51 ch2 disabled
             15, 0xFF, 0xFF, 0xFF, 0xFE, 0, 0,
             // WH34 ch1: type=31, id=0xAABBCCDD, battery=62 → 1.24V, signal=3
             31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3,
+            // WH31 ch2 low battery: type=7, battery=1, signal=2
+            7, 0x0A, 0x0B, 0x0C, 0x0D, 1, 2,
         ];
-        let result = GW1000Client::parse_soil_battery(&data);
+        let result = GW1000Client::parse_sensor_battery(&data);
 
+        assert_eq!(result.get("th_battery_low_ch1"), Some(&0.0));
+        assert_eq!(result.get("th_battery_low_ch2"), Some(&1.0));
         assert_eq!(result.get("soil_battery_ch1"), Some(&1.5));
         assert!(!result.contains_key("soil_battery_ch2"));
         assert!((result.get("tf_battery_ch1").unwrap() - 1.24).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_parse_wn31_temp_humidity_channels() {
+        let client = GW1000Client::new("127.0.0.1".to_string(), 45000);
+        // ITEM_TEMP1 = 27.6°C (276 = 0x0114), ITEM_HUMI1 = 40%
+        // ITEM_TEMP2 = 19.5°C (195 = 0x00C3), ITEM_HUMI2 = 55%
+        let data = [
+            0x1A, 0x01, 0x14, // th_temp_ch1 = 27.6°C
+            0x22, 40, // th_humid_ch1 = 40%
+            0x1B, 0x00, 0xC3, // th_temp_ch2 = 19.5°C
+            0x23, 55, // th_humid_ch2 = 55%
+        ];
+        let result = client.parse_livedata(&data).unwrap();
+
+        assert_eq!(result.get("th_temp_ch1"), Some(&27.6));
+        assert_eq!(result.get("th_humid_ch1"), Some(&40.0));
+        assert_eq!(result.get("th_temp_ch2"), Some(&19.5));
+        assert_eq!(result.get("th_humid_ch2"), Some(&55.0));
     }
 
     #[test]
@@ -637,6 +727,12 @@ mod tests {
         assert_eq!(soil_temp_channel(0x2B), Some(1));
         assert_eq!(soil_temp_channel(0x39), Some(8));
         assert_eq!(soil_temp_channel(0x2C), None);
+        assert_eq!(th_temp_channel(0x1A), Some(1));
+        assert_eq!(th_temp_channel(0x21), Some(8));
+        assert_eq!(th_temp_channel(0x22), None);
+        assert_eq!(th_humid_channel(0x22), Some(1));
+        assert_eq!(th_humid_channel(0x29), Some(8));
+        assert_eq!(th_humid_channel(0x1A), None);
         assert_eq!(tf_usr_channel(0x63), Some(1));
         assert_eq!(tf_usr_channel(0x6A), Some(8));
         assert_eq!(tf_usr_channel(0x2B), None);

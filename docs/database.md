@@ -105,8 +105,11 @@ The table is created automatically with the following columns:
 | `soil_battery_ch1`…`ch8` | DOUBLE | WH51 battery voltage (V) |
 | `tf_temp_ch1`…`ch8` | DOUBLE | Multi-channel temp probe WN34/WN34S (°C, same scale as `outtemp`) |
 | `tf_battery_ch1`…`ch8` | DOUBLE | WN34/WN34S battery voltage (V) |
+| `th_temp_ch1`…`ch8` | DOUBLE | WH31/WN31 dip-switch temp+humidity temperature (°C) |
+| `th_humid_ch1`…`ch8` | DOUBLE | WH31/WN31 humidity (%) |
+| `th_battery_low_ch1`…`ch8` | DOUBLE | WH31/WN31 battery flag (1 = low, 0 = normal) |
 
-**Note:** The `heap_free` field from the weather station is not stored in the database. WH51 is moisture-only; temperature probes use `tf_*` keys from `ITEM_TF_USR*`.
+**Note:** The `heap_free` field from the weather station is not stored in the database. WH51 is moisture-only; temperature probes use `tf_*` keys from `ITEM_TF_USR*`. WH31/WN31 channels use `th_*` keys from `ITEM_TEMP*` / `ITEM_HUMI*`.
 
 ### Upgrading an existing table
 
