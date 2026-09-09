@@ -548,6 +548,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse_wh25_indoor_temp_and_humidity() {
+        let client = GW1000Client::new("127.0.0.1".to_string(), 45000);
+        // ITEM_INTEMP 0x01 = 22.0°C (220 = 0x00DC), ITEM_INHUMI 0x06 = 45%
+        // plus outdoor for contrast
+        let data = [
+            0x01, 0x00, 0xDC, // intemp = 22.0°C
+            0x06, 45, // inhumid = 45%
+            0x02, 0x00, 0xFF, // outtemp = 25.5°C
+            0x07, 65, // outhumid = 65%
+            0x08, 0x27, 0x94, // absbarometer = 1013.2 hPa
+            0x09, 0x27, 0x76, // relbarometer = 1010.2 hPa
+        ];
+        let result = client.parse_livedata(&data).unwrap();
+
+        assert_eq!(result.get("intemp"), Some(&22.0));
+        assert_eq!(result.get("inhumid"), Some(&45.0));
+        assert_eq!(result.get("outtemp"), Some(&25.5));
+        assert_eq!(result.get("outhumid"), Some(&65.0));
+        assert_eq!(result.get("absbarometer"), Some(&1013.2));
+        assert!((result.get("relbarometer").unwrap() - 1010.2).abs() < 0.01);
+    }
+
+    #[test]
     fn test_parse_soil_moisture_and_temp() {
         let client = GW1000Client::new("127.0.0.1".to_string(), 45000);
         let data = [

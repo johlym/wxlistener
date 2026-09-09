@@ -136,6 +136,12 @@ pub fn mock_livedata_response() -> Vec<u8> {
     // Build the data payload
     let mut data = Vec::new();
 
+    // 0x01: intemp = 22.0°C (220 = 0x00DC) — WH25 indoor
+    data.extend_from_slice(&[0x01, 0x00, 0xDC]);
+
+    // 0x06: inhumid = 45% — WH25 indoor
+    data.extend_from_slice(&[0x06, 0x2D]);
+
     // 0x02: outtemp = 25.5°C (255 = 0x00FF)
     data.extend_from_slice(&[0x02, 0x00, 0xFF]);
 
