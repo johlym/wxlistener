@@ -81,8 +81,6 @@ fn test_client_get_livedata() {
     assert!(!data.is_empty());
 
     // Check specific fields we know are in the mock response
-    assert!(data.contains_key("intemp"));
-    assert!(data.contains_key("inhumid"));
     assert!(data.contains_key("outtemp"));
     assert!(data.contains_key("outhumid"));
     assert!(data.contains_key("th_temp_ch1"));
@@ -94,8 +92,6 @@ fn test_client_get_livedata() {
     assert!(data.contains_key("tf_battery_ch1"));
 
     // Verify values (°C via same decode_temp path as outtemp)
-    assert_eq!(data.get("intemp"), Some(&22.0));
-    assert_eq!(data.get("inhumid"), Some(&45.0));
     assert_eq!(data.get("outtemp"), Some(&25.5));
     assert_eq!(data.get("outhumid"), Some(&65.0));
     assert_eq!(data.get("th_temp_ch1"), Some(&27.6));

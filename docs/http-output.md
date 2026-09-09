@@ -72,8 +72,6 @@ Data is POSTed as JSON with the following structure:
     "gust_speed": float,
     "heatindex": float,
     "humidity": integer,
-    "indoor_humidity": integer,
-    "indoor_temperature": float,
     "light": float,
     "rain_day": float,
     "rain_event": float,
@@ -124,8 +122,6 @@ Data is POSTed as JSON with the following structure:
 | `gust_speed`        | `gust_speed`          | float   | Current wind gust speed (m/s)        |
 | `heatindex`         | `heatindex`           | float   | Heat index (°C)                      |
 | `humidity`          | `outhumid`            | integer | Outdoor humidity (%)                 |
-| `indoor_humidity`   | `inhumid`             | integer | WH25 indoor humidity (%)             |
-| `indoor_temperature`| `intemp`              | float   | WH25 indoor temperature (°C)         |
 | `light`             | `light`               | float   | Light intensity (lux)                |
 | `windchill`         | `windchill`           | float   | Wind chill (°C)                      |
 | `rain_day`          | `rain_day`            | float   | Rain today (mm)                      |
@@ -147,7 +143,7 @@ Data is POSTed as JSON with the following structure:
 | `temp_probes[].temperature` | `tf_temp_chN` | float   | WN34/WN34S temperature (°C, same as `temperature`) |
 | `temp_probes[].battery` | `tf_battery_chN`  | float   | WN34/WN34S battery voltage (V)       |
 
-**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH25 indoor readings come from livedata `ITEM_INTEMP` / `ITEM_INHUMI` (`intemp` / `inhumid`) and are sent as `indoor_temperature` / `indoor_humidity`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
+**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
 
 ### Example Payload
 
@@ -162,8 +158,6 @@ Data is POSTed as JSON with the following structure:
     "gust_speed": 8.2,
     "heatindex": 24.0,
     "humidity": 65,
-    "indoor_humidity": 31,
-    "indoor_temperature": 33.6,
     "light": 50000.0,
     "windchill": 21.5,
     "rain_day": 2.5,
@@ -173,7 +167,15 @@ Data is POSTed as JSON with the following structure:
     "uv": 5,
     "uvi": 3,
     "wind_dir": 180,
-    "wind_speed": 5.5
+    "wind_speed": 5.5,
+    "temp_humidity": [
+      {
+        "channel": 1,
+        "temperature": 27.6,
+        "humidity": 40,
+        "battery_low": false
+      }
+    ]
   }
 }
 ```

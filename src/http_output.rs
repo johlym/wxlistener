@@ -118,12 +118,6 @@ pub struct WeatherMeasurement {
     pub heatindex: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub humidity: Option<i32>,
-    /// WH25 indoor humidity (%)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub indoor_humidity: Option<i32>,
-    /// WH25 indoor temperature (°C)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub indoor_temperature: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub light: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -164,8 +158,6 @@ impl WeatherMeasurement {
             gust_speed: data.get("gust_speed").copied(),
             heatindex: data.get("heatindex").copied(),
             humidity: data.get("outhumid").map(|v| *v as i32),
-            indoor_humidity: data.get("inhumid").map(|v| *v as i32),
-            indoor_temperature: data.get("intemp").copied(),
             light: data.get("light").copied(),
             windchill: data.get("windchill").copied(),
             rain_day: data.get("rain_day").copied(),
@@ -192,8 +184,6 @@ impl WeatherMeasurement {
             || self.gust_speed.is_some()
             || self.heatindex.is_some()
             || self.humidity.is_some()
-            || self.indoor_humidity.is_some()
-            || self.indoor_temperature.is_some()
             || self.light.is_some()
             || self.windchill.is_some()
             || self.rain_day.is_some()
@@ -565,8 +555,6 @@ mod tests {
         let mut data = HashMap::new();
         data.insert("outtemp".to_string(), 25.5);
         data.insert("outhumid".to_string(), 65.0);
-        data.insert("intemp".to_string(), 33.6); // WH25 indoor (°C)
-        data.insert("inhumid".to_string(), 31.0); // WH25 indoor humidity
         data.insert("absbarometer".to_string(), 1013.25);
         data.insert("relbarometer".to_string(), 1010.0);
         data.insert("wind_speed".to_string(), 5.5);
@@ -588,8 +576,6 @@ mod tests {
 
         assert_eq!(measurement.temperature, Some(25.5));
         assert_eq!(measurement.humidity, Some(65));
-        assert_eq!(measurement.indoor_temperature, Some(33.6));
-        assert_eq!(measurement.indoor_humidity, Some(31));
         assert_eq!(measurement.barometer_abs, Some(1013.25));
         assert_eq!(measurement.barometer_rel, Some(1010.0));
         assert_eq!(measurement.wind_speed, Some(5.5));
@@ -605,33 +591,6 @@ mod tests {
         assert_eq!(measurement.dewpoint, Some(15.2));
         assert_eq!(measurement.windchill, Some(21.5));
         assert_eq!(measurement.heatindex, Some(28.0));
-    }
-
-    #[test]
-    fn test_weather_measurement_wh25_indoor_only() {
-        // WH25 ITEM_INTEMP (0x01) / ITEM_INHUMI (0x06) → intemp / inhumid
-        let mut data = HashMap::new();
-        data.insert("intemp".to_string(), 22.0);
-        data.insert("inhumid".to_string(), 45.0);
-
-        let measurement = WeatherMeasurement::from_data(&data, &Utc::now());
-
-        assert_eq!(measurement.indoor_temperature, Some(22.0));
-        assert_eq!(measurement.indoor_humidity, Some(45));
-        assert!(measurement.temperature.is_none());
-        assert!(measurement.humidity.is_none());
-        assert!(measurement.has_sensor_data());
-
-        let payload = WeatherPayload {
-            weather_measurement: measurement,
-        };
-        let json = serde_json::to_string(&payload).unwrap();
-        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let m = &value["weather_measurement"];
-        assert_eq!(m["indoor_temperature"], 22.0);
-        assert_eq!(m["indoor_humidity"], 45);
-        assert!(m.get("temperature").is_none());
-        assert!(m.get("humidity").is_none());
     }
 
     #[test]

@@ -613,7 +613,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_wh25_indoor_temp_and_humidity() {
+    fn test_parse_item_intemp_inhumid() {
         let client = GW1000Client::new("127.0.0.1".to_string(), 45000);
         // ITEM_INTEMP 0x01 = 22.0°C (220 = 0x00DC), ITEM_INHUMI 0x06 = 45%
         // plus outdoor for contrast
