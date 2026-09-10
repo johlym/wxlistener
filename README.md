@@ -467,6 +467,7 @@ The tool reads and displays:
 
 - **Temperature**: Indoor, outdoor, dew point, wind chill, heat index
 - **Humidity**: Indoor and outdoor
+- **Extra sensors**: WH51 soil moisture (`soil_moisture_chN`), WN34/WN34S probes (`tf_temp_chN`), WH31/WN31 dip-switch temp+humidity (`th_temp_chN` / `th_humid_chN`). HTTP publish nests these as `soil[]`, `temp_probes[]`, and `temp_humidity[]` — indoor WH25 values stay off the HTTP body (see [HTTP Endpoint Publishing](docs/http-output.md))
 - **Pressure**: Absolute and relative barometer
 - **Wind**: Speed, direction, gusts, daily max
 - **Rain**: Rate, daily, weekly, monthly, yearly totals

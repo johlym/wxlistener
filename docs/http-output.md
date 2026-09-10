@@ -145,6 +145,8 @@ Data is POSTed as JSON with the following structure:
 
 **Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
 
+Gateway livedata still decodes indoor WH25 `ITEM_INTEMP` / `ITEM_INHUMI` into `intemp` / `inhumid` (console, MQTT, and SQL). Those keys are **not** mapped onto the HTTP payload — do not expect `indoor_temperature` / `indoor_humidity`. A dip-switch WN31 is not a WH25; its channel belongs in `temp_humidity[]`. leahillwx ingest rejects unknown indoor keys and persists WN31 rows from `temp_humidity[]` only.
+
 ### Example Payload
 
 ```json
