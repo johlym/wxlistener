@@ -120,13 +120,16 @@ If you already have a `wx_records` table from an older wxlistener version, add c
 psql -U postgres -d weather -f docs/sql-examples/alter-add-soil-postgres.sql
 # PostgreSQL — temp-probe (WN34/WN34S) columns
 psql -U postgres -d weather -f docs/sql-examples/alter-add-tf-postgres.sql
+# PostgreSQL — WH31/WN31 temp+humidity columns
+psql -U postgres -d weather -f docs/sql-examples/alter-add-th-postgres.sql
 
 # MySQL
 mysql -u root -p weather < docs/sql-examples/alter-add-soil-mysql.sql
 mysql -u root -p weather < docs/sql-examples/alter-add-tf-mysql.sql
+mysql -u root -p weather < docs/sql-examples/alter-add-th-mysql.sql
 ```
 
-Without this migration, INSERTs that include soil or `tf_*` fields will fail.
+Without this migration, INSERTs that include soil, `tf_*`, or `th_*` fields will fail.
 
 ## Usage
 
