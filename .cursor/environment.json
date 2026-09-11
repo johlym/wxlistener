@@ -1,0 +1,15 @@
+{
+  "name": "wxlistener",
+  "install": "rustup default stable && rustup component add rustfmt clippy && cargo fetch && cargo build",
+  "terminals": [
+    {
+      "name": "mock-device",
+      "command": "python3 bin/mock-device --host 127.0.0.1 --port 45000"
+    },
+    {
+      "name": "wxlistener-web",
+      "command": "sleep 5 && cargo run -- --ip 127.0.0.1 --port 45000 --web --web-host 0.0.0.0 --web-port 18888"
+    }
+  ],
+  "ports": [18888]
+}
