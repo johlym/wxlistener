@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Mock GW1000/GW2000/Ecowitt Gateway device for local development.
+
+The real wxlistener talks to a physical weather station over a raw TCP
+protocol. No hardware is reachable from CI or a Cloud Agent VM, so this
+script emulates just enough of the gateway API to exercise the client,
+the text/JSON output, and the web dashboard end to end.
+
+It answers the four commands wxlistener issues:
+  * 0x50 CMD_READ_FIRMWARE_VERSION
+  * 0x26 CMD_READ_STATION_MAC
+  * 0x27 CMD_GW1000_LIVEDATA
+  * 0x3C CMD_READ_SENSOR_ID_NEW
+
+Live readings drift slightly on every poll so the dashboard looks alive.
+
+Usage:
+    bin/mock-device                 # listen on 0.0.0.0:45000
+    bin/mock-device --port 45001    # custom port
+    bin/mock-device --host 127.0.0.1
+"""
+
+import argparse
+import math
+import socket
+import threading
+import time
+
+HEADER = b"\xff\xff"
+
+CMD_READ_FIRMWARE_VERSION = 0x50
+CMD_READ_STATION_MAC = 0x26
+CMD_GW1000_LIVEDATA = 0x27
+CMD_READ_SENSOR_ID_NEW = 0x3C
+
+FIRMWARE_VERSION = "GW2000B_V3.1.4"
+MAC_ADDRESS = bytes([0xEC, 0x62, 0x60, 0xE0, 0x6E, 0x6F])
+
+_START = time.monotonic()
+
+
+def _checksum(payload: bytes) -> int:
+    """Gateway checksum: sum of bytes (command onward) modulo 256."""
+    return sum(payload) % 256
+
+
+def _frame(cmd: int, body: bytes, two_byte_size: bool) -> bytes:
+    """Wrap a payload body in a full gateway response frame.
+
+    Layout: FF FF | cmd | size | body | checksum
+    size counts cmd + size field + body + checksum.
+    """
+    if two_byte_size:
+        size = 1 + 2 + len(body) + 1
+        head = bytes([cmd]) + size.to_bytes(2, "big")
+    else:
+        size = 1 + 1 + len(body) + 1
+        head = bytes([cmd, size])
+    frame_wo_checksum = head + body
+    return HEADER + frame_wo_checksum + bytes([_checksum(frame_wo_checksum)])
+
+
+def _temp(celsius: float) -> bytes:
+    """Signed temperature x10, big-endian 16-bit (two's complement)."""
+    return int(round(celsius * 10)).to_bytes(2, "big", signed=True)
+
+
+def _u16_tenths(value: float) -> bytes:
+    """Unsigned value x10, big-endian 16-bit (pressure/wind/rain)."""
+    return int(round(value * 10)).to_bytes(2, "big", signed=False)
+
+
+def _u16(value: int) -> bytes:
+    return int(value).to_bytes(2, "big", signed=False)
+
+
+def _u32(value: int) -> bytes:
+    return int(value).to_bytes(4, "big", signed=False)
+
+
+def firmware_response() -> bytes:
+    return _frame(
+        CMD_READ_FIRMWARE_VERSION,
+        FIRMWARE_VERSION.encode("ascii"),
+        two_byte_size=False,
+    )
+
+
+def mac_response() -> bytes:
+    return _frame(CMD_READ_STATION_MAC, MAC_ADDRESS, two_byte_size=False)
+
+
+def livedata_response() -> bytes:
+    """Build a live-data payload with gently drifting values."""
+    t = time.monotonic() - _START
+    wobble = math.sin(t / 20.0)
+
+    outtemp = 12.5 + 1.5 * wobble
+    outhumid = int(90 + 8 * math.sin(t / 15.0))
+    wind_speed = max(0.0, 2.0 + 1.5 * math.sin(t / 8.0))
+    gust_speed = wind_speed + 1.2
+    wind_dir = int((110 + 40 * math.sin(t / 25.0)) % 360)
+    heap_free = 149240 + int(2000 * math.sin(t / 30.0))
+
+    body = b""
+    body += bytes([0x01]) + _temp(21.5)            # intemp
+    body += bytes([0x02]) + _temp(outtemp)         # outtemp
+    body += bytes([0x06]) + bytes([35])            # inhumid %
+    body += bytes([0x07]) + bytes([outhumid])      # outhumid %
+    body += bytes([0x08]) + _u16_tenths(996.0)     # absbarometer hPa
+    body += bytes([0x09]) + _u16_tenths(993.3)     # relbarometer hPa
+    body += bytes([0x0A]) + _u16(wind_dir)         # wind_dir deg
+    body += bytes([0x0B]) + _u16_tenths(wind_speed)  # wind_speed m/s
+    body += bytes([0x0C]) + _u16_tenths(gust_speed)  # gust_speed m/s
+    body += bytes([0x19]) + _u16_tenths(6.6)       # day_max_wind m/s
+    body += bytes([0x0E]) + _u16_tenths(0.0)       # rain_rate mm
+    body += bytes([0x10]) + _u16_tenths(2.5)       # rain_day mm
+    body += bytes([0x15]) + _u32(0)                # light lux x10
+    body += bytes([0x16]) + _u16(0)                # uv
+    body += bytes([0x17]) + bytes([0])             # uvi
+    body += bytes([0x1A]) + _temp(27.6)            # th_temp_ch1 (WH31)
+    body += bytes([0x22]) + bytes([40])            # th_humid_ch1 %
+    body += bytes([0x63]) + _temp(23.1) + bytes([81])  # TF_USR1 temp + batt
+    body += bytes([0x6C]) + _u32(heap_free)        # heap_free bytes
+
+    return _frame(CMD_GW1000_LIVEDATA, body, two_byte_size=True)
+
+
+def sensor_id_response() -> bytes:
+    """Sensor inventory: entry = type(1) id(4) battery(1) signal(1)."""
+    body = b""
+    # WH31/WN31 ch1: type 6, battery ok (0), signal 4
+    body += bytes([6, 0x01, 0x02, 0x03, 0x04, 0, 4])
+    # WH51 soil ch1: type 14, battery 15 -> 1.5 V, signal 4
+    body += bytes([14, 0x12, 0x34, 0x56, 0x78, 15, 4])
+    # WH34 temp probe ch1: type 31, battery 62, signal 3
+    body += bytes([31, 0xAA, 0xBB, 0xCC, 0xDD, 62, 3])
+    return _frame(CMD_READ_SENSOR_ID_NEW, body, two_byte_size=True)
+
+
+RESPONDERS = {
+    CMD_READ_FIRMWARE_VERSION: firmware_response,
+    CMD_READ_STATION_MAC: mac_response,
+    CMD_GW1000_LIVEDATA: livedata_response,
+    CMD_READ_SENSOR_ID_NEW: sensor_id_response,
+}
+
+
+def handle(conn: socket.socket) -> None:
+    try:
+        conn.settimeout(2.0)
+        request = conn.recv(1024)
+        if len(request) < 3 or request[0:2] != HEADER:
+            return
+        cmd = request[2]
+        responder = RESPONDERS.get(cmd)
+        if responder is not None:
+            conn.sendall(responder())
+    except OSError:
+        pass
+    finally:
+        conn.close()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Mock GW1000/Ecowitt gateway")
+    parser.add_argument("--host", default="0.0.0.0", help="bind address")
+    parser.add_argument("--port", type=int, default=45000, help="bind port")
+    args = parser.parse_args()
+
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind((args.host, args.port))
+    srv.listen(16)
+    print(f"mock GW1000 device listening on {args.host}:{args.port}", flush=True)
+
+    try:
+        while True:
+            conn, _ = srv.accept()
+            threading.Thread(target=handle, args=(conn,), daemon=True).start()
+    except KeyboardInterrupt:
+        print("\nshutting down mock device", flush=True)
+    finally:
+        srv.close()
+
+
+if __name__ == "__main__":
+    main()
