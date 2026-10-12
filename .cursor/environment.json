@@ -11,5 +11,5 @@
       "command": "sleep 5 && cargo run -- --ip 127.0.0.1 --port 45000 --web --web-host 0.0.0.0 --web-port 18888"
     }
   ],
-  "ports": [18888]
+  "ports": [{ "name": "app", "port": 18888 }]
 }
