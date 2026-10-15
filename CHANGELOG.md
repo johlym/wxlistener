@@ -14,7 +14,7 @@
 - The HTTP API is the default transport on port 80. `--legacy`, `legacy = true`, or `WXLISTENER_LEGACY=1` selects the old TCP client on port 45000.
 - Port 45000 without legacy, or port 80 with legacy, fails at startup.
 - `W/m²` light values convert with `lux = (W/m²) / 0.0079`.
-- Channel readings are emitted only when `get_sensors_info` shows the sensor is registered.
+- Channel readings are emitted only when `get_sensors_info` shows the sensor is registered (`id` + `idst`). `signal` is reception quality and does not hide a live channel.
 
 ### Upgrade notes
 
