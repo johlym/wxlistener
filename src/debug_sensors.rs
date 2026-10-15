@@ -275,7 +275,14 @@ pub fn verdict(
 }
 
 /// Connect, print the sensor inventory report, and return the verdict.
-pub fn run_debug_sensors(client: &GW1000Client) -> Result<SensorPathVerdict> {
+pub fn run_debug_sensors(gateway: &crate::gateway::Gateway) -> Result<SensorPathVerdict> {
+    match gateway {
+        crate::gateway::Gateway::Legacy(client) => run_tcp_debug(client),
+        crate::gateway::Gateway::Http(client) => run_http_debug(client),
+    }
+}
+
+fn run_tcp_debug(client: &GW1000Client) -> Result<SensorPathVerdict> {
     println!("============================================================");
     println!("Sensor debug probe (WN34S / WH34 TF validation)");
     println!("============================================================");
@@ -374,6 +381,101 @@ pub fn run_debug_sensors(client: &GW1000Client) -> Result<SensorPathVerdict> {
     println!();
 
     Ok(v)
+}
+
+fn run_http_debug(client: &crate::http_gateway::HttpGateway) -> Result<SensorPathVerdict> {
+    println!("============================================================");
+    println!("Sensor debug probe (HTTP API)");
+    println!("============================================================");
+
+    println!("\n--- Device Information ---");
+    match client.get_firmware_version() {
+        Ok(version) => println!("[OK] Firmware Version: {}", version),
+        Err(e) => println!("[ERROR] Failed to get firmware: {}", e),
+    }
+    match client.get_mac_address() {
+        Ok(mac) => println!("[OK] MAC Address: {}", mac),
+        Err(e) => println!("[ERROR] Failed to get MAC: {}", e),
+    }
+
+    println!("\n--- get_sensors_info ---");
+    let sensors = client.fetch_sensors()?;
+    if sensors.is_empty() {
+        println!("(no sensor rows)");
+    } else {
+        for sensor in &sensors {
+            println!(
+                "  [{:>12}] type={:<3} id={:<10} signal={} idst={} batt={} name={}",
+                if sensor.is_registered() {
+                    "registered"
+                } else {
+                    "inactive"
+                },
+                sensor.type_code,
+                sensor.id,
+                sensor
+                    .signal
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "-".into()),
+                sensor
+                    .idst
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "-".into()),
+                sensor
+                    .battery
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "-".into()),
+                sensor.name
+            );
+        }
+    }
+
+    println!("\n--- Listener-decoded channel keys ---");
+    let parsed = client.get_livedata().unwrap_or_else(|err| {
+        println!("[ERROR] Failed to read livedata: {err}");
+        HashMap::new()
+    });
+    let mut keys: Vec<_> = parsed
+        .iter()
+        .filter(|(key, _)| {
+            key.starts_with("tf_") || key.starts_with("soil_") || key.starts_with("th_")
+        })
+        .collect();
+    keys.sort_by(|a, b| a.0.cmp(b.0));
+    if keys.is_empty() {
+        println!("(none)");
+    } else {
+        for (key, value) in keys {
+            println!("  {}: {}", key, format_value(key, *value));
+        }
+    }
+
+    let entries: Vec<SensorIdEntry> = sensors.iter().map(http_sensor_entry).collect();
+    let v = verdict(&entries, &[], &parsed);
+    println!("\n--- Verdict ---");
+    println!("{}", v.message());
+    println!();
+    Ok(v)
+}
+
+fn http_sensor_entry(sensor: &crate::http_gateway::HttpSensor) -> SensorIdEntry {
+    let hex = sensor
+        .id
+        .trim()
+        .trim_start_matches("0x")
+        .trim_start_matches("0X");
+    let sensor_id = u32::from_str_radix(hex, 16).unwrap_or(0);
+    let signal = if sensor.is_registered() {
+        sensor.signal.unwrap_or(0).min(u32::from(u8::MAX)) as u8
+    } else {
+        0
+    };
+    SensorIdEntry {
+        sensor_type: sensor.type_code.min(u16::from(u8::MAX)) as u8,
+        sensor_id,
+        battery_raw: sensor.battery.unwrap_or(0.0).clamp(0.0, 255.0) as u8,
+        signal,
+    }
 }
 
 fn hex_preview(data: &[u8], max: usize) -> String {

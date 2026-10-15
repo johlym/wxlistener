@@ -8,7 +8,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use crate::config::{RainSource, HTTP_GATEWAY_PORT};
+use crate::config::RainSource;
 
 /// Ecowitt display conversion: `W/m² = lux * 0.0079`. Reverse it to recover lux.
 pub const LUX_PER_WM2_DIVISOR: f64 = 0.0079;
@@ -116,14 +116,6 @@ impl HttpSensor {
             _ => None,
         }
     }
-}
-
-/// Parse a `get_sensors_info` JSON array. Objects that are not sensor rows are skipped.
-pub fn parse_sensor_list(value: &Value) -> Vec<HttpSensor> {
-    let Some(items) = value.as_array() else {
-        return Vec::new();
-    };
-    items.iter().filter_map(parse_sensor).collect()
 }
 
 fn parse_sensor(value: &Value) -> Option<HttpSensor> {
@@ -779,11 +771,6 @@ impl std::fmt::Debug for HttpGateway {
             .field("rain_source", &self.rain_source)
             .finish()
     }
-}
-
-/// Default HTTP port re-exported for callers that only need the constant.
-pub fn default_port() -> u16 {
-    HTTP_GATEWAY_PORT
 }
 
 #[cfg(test)]
