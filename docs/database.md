@@ -122,15 +122,19 @@ If you already have a `wx_records` table from an older wxlistener version, add c
 psql -U postgres -d weather -f docs/sql-examples/alter-add-soil-postgres.sql
 # PostgreSQL — temp-probe (WN34/WN34S) columns
 psql -U postgres -d weather -f docs/sql-examples/alter-add-tf-postgres.sql
+# PostgreSQL — temp+humidity (WH31/WN31) columns
+psql -U postgres -d weather -f docs/sql-examples/alter-add-th-postgres.sql
+# PostgreSQL — HTTP battery-level columns (beside existing voltage)
 psql -U postgres -d weather -f docs/sql-examples/alter-add-battery-level-postgres.sql
 
 # MySQL
 mysql -u root -p weather < docs/sql-examples/alter-add-soil-mysql.sql
 mysql -u root -p weather < docs/sql-examples/alter-add-tf-mysql.sql
+mysql -u root -p weather < docs/sql-examples/alter-add-th-mysql.sql
 mysql -u root -p weather < docs/sql-examples/alter-add-battery-level-mysql.sql
 ```
 
-Without this migration, INSERTs that include soil or `tf_*` fields will fail.
+wxlistener does **not** auto-migrate existing tables — these ALTER scripts are manual. New installs that run Option 1/2 `CREATE TABLE` already include `th_*` and `*_battery_level_*`. Without the ALTER on an older table, INSERTs that include soil, `tf_*`, `th_*`, or battery-level fields will fail. For a full current schema, prefer `docs/sql-examples/postgres.sql` / `mysql.sql` over the abbreviated Option 3 CREATE TABLE later in this page.
 
 ## Usage
 
