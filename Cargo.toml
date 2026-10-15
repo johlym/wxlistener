@@ -1,6 +1,6 @@
 [package]
 name = "wxlistener"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 description = "GW3000/Ecowitt Gateway Weather Station Listener"
 license = "MIT"
