@@ -47,7 +47,8 @@ WORKDIR /home/wxlistener
 
 # Environment variables for configuration
 ENV WXLISTENER_IP="" \
-    WXLISTENER_PORT="45000" \
+    WXLISTENER_PORT="80" \
+    WXLISTENER_LEGACY="" \
     WXLISTENER_INTERVAL="60" \
     WXLISTENER_FORMAT="text"
 
@@ -57,7 +58,7 @@ HEALTHCHECK --interval=120s --timeout=10s --start-period=10s --retries=3 \
 
 # Default command: continuous mode
 ENTRYPOINT ["sh", "-c"]
-CMD ["wxlistener --ip ${WXLISTENER_IP} --port ${WXLISTENER_PORT} --continuous ${WXLISTENER_INTERVAL} --format ${WXLISTENER_FORMAT}"]
+CMD ["legacy=; case \"$WXLISTENER_LEGACY\" in 1|true|TRUE|yes|YES|on|ON) legacy=--legacy;; esac; wxlistener --ip ${WXLISTENER_IP} $legacy --port ${WXLISTENER_PORT} --continuous ${WXLISTENER_INTERVAL} --format ${WXLISTENER_FORMAT}"]
 
 # Labels
 LABEL org.opencontainers.image.title="wxlistener"

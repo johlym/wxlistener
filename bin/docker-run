@@ -29,9 +29,13 @@ fi
 
 # Use environment variable or default
 DEVICE_IP="${WXLISTENER_IP:-10.31.100.42}"
-DEVICE_PORT="${WXLISTENER_PORT:-45000}"
+DEVICE_PORT="${WXLISTENER_PORT:-80}"
 POLL_INTERVAL="${WXLISTENER_INTERVAL:-60}"
 OUTPUT_FORMAT="${WXLISTENER_FORMAT:-text}"
+LEGACY_FLAG=""
+case "${WXLISTENER_LEGACY:-}" in
+    1|true|TRUE|yes|YES|on|ON) LEGACY_FLAG="--legacy" ;;
+esac
 
 # Parse arguments
 MODE="${1:-single}"
@@ -47,6 +51,7 @@ case "$MODE" in
             --network host \
             -e WXLISTENER_IP="$DEVICE_IP" \
             -e WXLISTENER_PORT="$DEVICE_PORT" \
+            -e WXLISTENER_LEGACY="${WXLISTENER_LEGACY:-}" \
             -e WXLISTENER_INTERVAL="$INTERVAL" \
             -e WXLISTENER_FORMAT="$OUTPUT_FORMAT" \
             wxlistener:latest
@@ -60,7 +65,7 @@ case "$MODE" in
             -e WXLISTENER_IP="$DEVICE_IP" \
             -e WXLISTENER_PORT="$DEVICE_PORT" \
             wxlistener:latest \
-            sh -c "wxlistener --ip \$WXLISTENER_IP --port \$WXLISTENER_PORT"
+            sh -c "wxlistener $LEGACY_FLAG --ip \$WXLISTENER_IP --port \$WXLISTENER_PORT"
         ;;
     
     json)
@@ -70,6 +75,7 @@ case "$MODE" in
             --network host \
             -e WXLISTENER_IP="$DEVICE_IP" \
             -e WXLISTENER_PORT="$DEVICE_PORT" \
+            -e WXLISTENER_LEGACY="${WXLISTENER_LEGACY:-}" \
             -e WXLISTENER_FORMAT="json" \
             wxlistener:latest
         ;;

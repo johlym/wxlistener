@@ -82,7 +82,7 @@ Or set directly:
 
 ```bash
 export WXLISTENER_IP=10.31.100.42
-export WXLISTENER_PORT=45000
+export WXLISTENER_PORT=80
 export WXLISTENER_INTERVAL=60
 ```
 
@@ -181,7 +181,7 @@ docker run --rm \
   --network host \
   wxlistener:latest \
   --ip 10.31.100.42 \
-  --port 45000
+  --port 80
 ```
 
 ## Docker Compose
@@ -258,8 +258,10 @@ docker run --network host wxlistener:latest --ip 10.31.100.42
 ### Bridge Network
 
 ```bash
-docker run -p 45000:45000 wxlistener:latest --ip 10.31.100.42
+docker run wxlistener:latest --ip 10.31.100.42
 ```
+
+The container connects out to the station. It does not listen on the gateway port. Publish `18888` only when `--web` is enabled.
 
 **Pros:**
 
@@ -268,7 +270,7 @@ docker run -p 45000:45000 wxlistener:latest --ip 10.31.100.42
 
 **Cons:**
 
-- Requires port mapping
+- The container must have a route to the station IP
 - May not work with UDP discovery
 
 ## Volume Mounts
@@ -298,7 +300,8 @@ docker run -p 45000:45000 wxlistener:latest --ip 10.31.100.42
 | Variable              | Description                      | Default | Required |
 | --------------------- | -------------------------------- | ------- | -------- |
 | `WXLISTENER_IP`       | Weather station IP address       | -       | ✅ Yes   |
-| `WXLISTENER_PORT`     | Weather station port             | `45000` | No       |
+| `WXLISTENER_PORT`     | Weather station port             | `80`    | No       |
+| `WXLISTENER_LEGACY`   | `1` selects the legacy TCP API   | unset   | No       |
 | `WXLISTENER_INTERVAL` | Polling interval (seconds)       | `60`    | No       |
 | `WXLISTENER_FORMAT`   | Output format (`text` or `json`) | `text`  | No       |
 | `RUST_LOG`            | Logging level                    | `info`  | No       |
@@ -341,7 +344,7 @@ Create a `.env` file:
 
 ```bash
 WXLISTENER_IP=10.31.100.42
-WXLISTENER_PORT=45000
+WXLISTENER_PORT=80
 WXLISTENER_INTERVAL=60
 WXLISTENER_FORMAT=text
 RUST_LOG=info

@@ -2,7 +2,7 @@
 name = "wxlistener"
 version = "0.4.2"
 edition = "2021"
-description = "GW1000/Ecowitt Gateway Weather Station Listener"
+description = "GW3000/Ecowitt Gateway Weather Station Listener"
 license = "MIT"
 repository = "https://github.com/johlym/wxlistener"
 readme = "README.md"

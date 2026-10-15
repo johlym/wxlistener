@@ -157,7 +157,8 @@ mod tests {
     fn test_get_connection_info_from_ip() {
         let args = Args {
             ip: Some("192.168.1.1".to_string()),
-            port: Some(45000),
+            port: Some(80),
+            legacy: false,
             config: None,
             format: "text".to_string(),
             continuous: None,
@@ -165,7 +166,7 @@ mod tests {
 
         let (ip, port) = args.get_connection_info().unwrap();
         assert_eq!(ip, "192.168.1.1");
-        assert_eq!(port, 45000);
+        assert_eq!(port, 80);
     }
 }
 ```

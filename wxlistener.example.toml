@@ -1,14 +1,21 @@
 # WXListener Configuration File (Example)
-# GW1000/Ecowitt Gateway Weather Station
+# GW3000/Ecowitt Gateway Weather Station
 #
 # Copy this file to wxlistener.toml and customize for your setup
 
 # IP address of your weather station (REQUIRED)
-# This is the IP of your GW1000/Ecowitt device on your local network
+# This is the IP of your GW3000/Ecowitt device on your local network
 ip = "192.168.1.100"
 
-# Port number (optional, default: 45000)
-port = 45000
+# Use the legacy TCP API (port 45000). Default is the local HTTP API.
+# legacy = true
+
+# Gateway port. Omit it to use 80 (HTTP) or 45000 (legacy TCP).
+# An explicit 45000 without legacy = true is a startup error, and so is port 80 with legacy.
+# port = 80
+
+# Which rain array fills rain_* keys: "rain" (default) or "piezo".
+# rain_source = "rain"
 
 # Optional: Database configuration
 # Uncomment and configure to enable database logging
