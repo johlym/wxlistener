@@ -201,12 +201,6 @@ impl Args {
         )
     }
 
-    /// Get IP and port from either command line args, config file, or environment variables.
-    pub fn get_connection_info(&self) -> Result<(String, u16)> {
-        let settings = self.gateway_settings()?;
-        Ok((settings.ip, settings.port))
-    }
-
     /// Get database configuration from config file if present
     pub fn get_database_config(&self) -> Result<Option<DatabaseConfig>> {
         Ok(self.load_config()?.and_then(|config| config.database))
@@ -277,7 +271,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 8080);
     }
@@ -298,7 +293,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "10.0.0.1");
         assert_eq!(port, HTTP_GATEWAY_PORT);
     }
@@ -323,7 +319,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "172.16.0.1");
         assert_eq!(port, 12345);
     }
@@ -348,7 +345,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "192.168.0.1");
         assert_eq!(port, HTTP_GATEWAY_PORT);
     }
@@ -374,7 +372,7 @@ mod tests {
             legacy: false,
         };
 
-        let result = args.get_connection_info();
+        let result = args.gateway_settings();
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -398,7 +396,7 @@ mod tests {
             legacy: false,
         };
 
-        let result = args.get_connection_info();
+        let result = args.gateway_settings();
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -425,7 +423,7 @@ mod tests {
             legacy: false,
         };
 
-        let result = args.get_connection_info();
+        let result = args.gateway_settings();
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -487,7 +485,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "192.168.1.50");
         assert_eq!(port, 12345);
 
@@ -520,7 +519,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "10.0.0.5");
         assert_eq!(port, HTTP_GATEWAY_PORT);
 
@@ -550,7 +550,8 @@ mod tests {
             legacy: false,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "10.10.10.10"); // CLI value, not env
         assert_eq!(port, 9999);
 

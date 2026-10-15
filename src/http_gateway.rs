@@ -609,8 +609,7 @@ fn normalize_unit(raw: &str) -> String {
         .trim()
         .to_lowercase()
         .replace('²', "2")
-        .replace('°', "")
-        .replace(' ', "");
+        .replace(['°', ' '], "");
     if unit == "km/h" || unit == "m/s" || unit.starts_with("w/") {
         return unit;
     }

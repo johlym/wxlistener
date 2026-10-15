@@ -164,7 +164,8 @@ mod tests {
             continuous: None,
         };
 
-        let (ip, port) = args.get_connection_info().unwrap();
+        let settings = args.gateway_settings().unwrap();
+        let (ip, port) = (settings.ip, settings.port);
         assert_eq!(ip, "192.168.1.1");
         assert_eq!(port, 80);
     }

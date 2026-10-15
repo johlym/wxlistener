@@ -69,7 +69,7 @@ src/
 
 - `Args` struct - CLI argument definitions using clap
 - `Config` struct - TOML configuration file structure
-- `get_connection_info()` - resolves IP/port from args or config file
+- `gateway_settings()` - resolves IP, port, legacy mode, and rain source
 - Handles both command-line and file-based configuration
 
 ### `decoder.rs`
