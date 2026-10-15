@@ -508,7 +508,22 @@ The setup script will:
 - Create an example config file
 - Make scripts executable
 
-After setup, update `wxlistener.toml` with your device's IP address and you're ready to go!
+After setup, update `wxlistener.toml` with your device's IP address — or use the mock gateway below if you have no hardware.
+
+### Local dev without hardware
+
+`bin/mock-device` is a Python 3 stdlib **legacy TCP** server (no pip deps) that answers the four GW1000 commands wxlistener issues (`0x50` firmware, `0x26` MAC, `0x27` livedata, `0x3C` sensor IDs). Readings drift on each poll. It includes WH31/WN31 ch1 (`th_*`) and a WN34-style temp probe. It does **not** speak the default GW3000 HTTP API.
+
+wxlistener defaults to HTTP on port **80**. Port **45000** without `--legacy` (or port 80 *with* `--legacy`) fails startup (`src/config.rs` `check_port_transport`). Always pass `--legacy` when pointing at the mock.
+
+```bash
+bin/mock-device                         # 0.0.0.0:45000 (legacy TCP)
+# another terminal:
+cargo run -- --ip 127.0.0.1 --port 45000 --legacy --web
+# dashboard: http://localhost:18888
+```
+
+Cursor Cloud Agent terminals in `.cursor/environment.json` start the mock on `127.0.0.1:45000` and wxlistener on `0.0.0.0:18888` after a 5s sleep. The committed wxlistener command **omits `--legacy`**, so it will exit with the port/transport mismatch until you add the flag locally. One TCP request per connection; process restart of the mock is harmless.
 
 ## Testing
 

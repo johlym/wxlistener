@@ -153,8 +153,15 @@ The `data` object contains weather measurements. Available fields depend on your
 | `uvi`          | UV index                     | `3`           |
 | `soil_moisture_ch1`…`ch8` | Soil moisture (WH51), % | `78%` |
 | `soil_battery_ch1`…`ch8` | WH51 battery voltage | `1.50 V` |
+| `soil_battery_level_ch1`…`ch8` | HTTP battery **level** for WH51 (not voltage) | `4` |
 | `tf_temp_ch1`…`ch8` | Multi-channel temp probe (WN34/WN34S), °C | `23.1°C` |
 | `tf_battery_ch1`…`ch8` | WN34/WN34S battery voltage | `1.62 V` |
+| `tf_battery_level_ch1`…`ch8` | HTTP battery **level** for temp probes (not voltage) | `5` |
+| `th_temp_ch1`…`ch8` | Multi-channel temp+humidity (WH31/WN31), °C | `27.6°C` |
+| `th_humid_ch1`…`ch8` | WH31/WN31 humidity | `40%` |
+| `th_battery_low_ch1`…`ch8` | WH31/WN31 battery flag | `ok` or `low` |
+
+REST `GET /api/v1/current.json` uses these **flat** formatted keys. The outbound HTTP collector (`[http]` in `wxlistener.toml`) instead POSTs nested `soil[]` / `temp_probes[]` / `temp_humidity[]` arrays — see [`http-output.md`](http-output.md). `*_battery_level_*` appear when the listener is on the default GW3000 HTTP gateway (`get_livedata_info`); legacy TCP (`--legacy`) still fills voltage / `th_battery_low_*` only.
 
 **Note**: Not all fields may be present. Available fields depend on the sensors connected to your weather station.
 
