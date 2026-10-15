@@ -23,6 +23,9 @@ pub fn print_livedata(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
 
 pub fn format_value(key: &str, value: f64) -> String {
     match key {
+        k if k.starts_with("soil_battery_level_ch") || k.starts_with("tf_battery_level_ch") => {
+            format!("{}", value as i32)
+        }
         k if k.starts_with("th_battery_low_ch") => {
             if value >= 1.0 {
                 "low".to_string()
@@ -127,6 +130,8 @@ mod tests {
         assert_eq!(format_value("soil_moisture_ch1", 78.0), "78%");
         assert_eq!(format_value("soil_temp_ch1", 18.5), "18.5°C");
         assert_eq!(format_value("soil_battery_ch1", 1.50), "1.50 V");
+        assert_eq!(format_value("soil_battery_level_ch1", 5.0), "5");
+        assert_eq!(format_value("tf_battery_level_ch2", 4.0), "4");
         assert_eq!(format_value("soil_temp_battery_ch2", 1.20), "1.20 V");
     }
 

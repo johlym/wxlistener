@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS wx_records (
     soil_battery_ch6 DOUBLE PRECISION,
     soil_battery_ch7 DOUBLE PRECISION,
     soil_battery_ch8 DOUBLE PRECISION,
+    -- HTTP API battery level (0–5), separate from voltage
+    soil_battery_level_ch1 DOUBLE PRECISION,
+    soil_battery_level_ch2 DOUBLE PRECISION,
+    soil_battery_level_ch3 DOUBLE PRECISION,
+    soil_battery_level_ch4 DOUBLE PRECISION,
+    soil_battery_level_ch5 DOUBLE PRECISION,
+    soil_battery_level_ch6 DOUBLE PRECISION,
+    soil_battery_level_ch7 DOUBLE PRECISION,
+    soil_battery_level_ch8 DOUBLE PRECISION,
     -- Legacy soil_temp battery columns (unused by current WN34S path)
     soil_temp_battery_ch1 DOUBLE PRECISION,
     soil_temp_battery_ch2 DOUBLE PRECISION,
@@ -85,6 +94,15 @@ CREATE TABLE IF NOT EXISTS wx_records (
     tf_battery_ch6 DOUBLE PRECISION,
     tf_battery_ch7 DOUBLE PRECISION,
     tf_battery_ch8 DOUBLE PRECISION,
+    -- HTTP API temp-probe battery level (0–5), separate from voltage
+    tf_battery_level_ch1 DOUBLE PRECISION,
+    tf_battery_level_ch2 DOUBLE PRECISION,
+    tf_battery_level_ch3 DOUBLE PRECISION,
+    tf_battery_level_ch4 DOUBLE PRECISION,
+    tf_battery_level_ch5 DOUBLE PRECISION,
+    tf_battery_level_ch6 DOUBLE PRECISION,
+    tf_battery_level_ch7 DOUBLE PRECISION,
+    tf_battery_level_ch8 DOUBLE PRECISION,
     -- WH31/WN31 dip-switch temp+humidity channels 1–8 (°C / %)
     th_temp_ch1 DOUBLE PRECISION,
     th_temp_ch2 DOUBLE PRECISION,

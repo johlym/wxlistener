@@ -68,6 +68,9 @@ pub struct SoilSensorReading {
     /// WH51 moisture sensor battery voltage (volts)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub battery: Option<f64>,
+    /// Gateway battery level, separate from voltage.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery_level: Option<i32>,
 }
 
 /// Per-channel multi-channel temperature probe (WN34/WN34S via ITEM_TF_USR).
@@ -79,6 +82,9 @@ pub struct TempProbeReading {
     /// Probe battery voltage (volts)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub battery: Option<f64>,
+    /// Gateway battery level, separate from voltage.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery_level: Option<i32>,
 }
 
 /// Per-channel WH31/WN31 temp+humidity sensor (dip-switch channels 1–8).
@@ -204,12 +210,16 @@ impl WeatherMeasurement {
         for ch in 1..=8 {
             let moisture = data.get(&format!("soil_moisture_ch{}", ch)).copied();
             let battery = data.get(&format!("soil_battery_ch{}", ch)).copied();
+            let battery_level = data
+                .get(&format!("soil_battery_level_ch{}", ch))
+                .map(|value| *value as i32);
 
-            if moisture.is_some() || battery.is_some() {
+            if moisture.is_some() || battery.is_some() || battery_level.is_some() {
                 soil.push(SoilSensorReading {
                     channel: ch,
                     moisture,
                     battery,
+                    battery_level,
                 });
             }
         }
@@ -243,12 +253,16 @@ impl WeatherMeasurement {
         for ch in 1..=8 {
             let temperature = data.get(&format!("tf_temp_ch{}", ch)).copied();
             let battery = data.get(&format!("tf_battery_ch{}", ch)).copied();
+            let battery_level = data
+                .get(&format!("tf_battery_level_ch{}", ch))
+                .map(|value| *value as i32);
 
-            if temperature.is_some() || battery.is_some() {
+            if temperature.is_some() || battery.is_some() || battery_level.is_some() {
                 probes.push(TempProbeReading {
                     channel: ch,
                     temperature,
                     battery,
+                    battery_level,
                 });
             }
         }
@@ -599,6 +613,7 @@ mod tests {
         data.insert("outtemp".to_string(), 22.0);
         data.insert("soil_moisture_ch1".to_string(), 78.0);
         data.insert("soil_battery_ch1".to_string(), 1.5);
+        data.insert("soil_battery_level_ch1".to_string(), 5.0);
         // Legacy soil_temp keys must not appear in soil[] (WH51 is moisture-only).
         data.insert("soil_temp_ch2".to_string(), 16.2);
 
@@ -609,6 +624,7 @@ mod tests {
         assert_eq!(measurement.soil[0].channel, 1);
         assert_eq!(measurement.soil[0].moisture, Some(78.0));
         assert_eq!(measurement.soil[0].battery, Some(1.5));
+        assert_eq!(measurement.soil[0].battery_level, Some(5));
         assert!(measurement.temp_probes.is_empty());
 
         let payload = WeatherPayload {
