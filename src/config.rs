@@ -128,8 +128,7 @@ impl Args {
         };
         let config_str = fs::read_to_string(config_path)
             .context(format!("Failed to read config file: {:?}", config_path))?;
-        let config: Config =
-            toml::from_str(&config_str).context("Failed to parse config file")?;
+        let config: Config = toml::from_str(&config_str).context("Failed to parse config file")?;
         Ok(Some(config))
     }
 
@@ -182,9 +181,11 @@ impl Args {
         }
         if let Ok(ip) = std::env::var("WXLISTENER_IP") {
             let port = match std::env::var("WXLISTENER_PORT") {
-                Ok(value) => Some(value.parse::<u16>().context(
-                    "WXLISTENER_PORT must be an integer port number",
-                )?),
+                Ok(value) => Some(
+                    value
+                        .parse::<u16>()
+                        .context("WXLISTENER_PORT must be an integer port number")?,
+                ),
                 Err(_) => None,
             };
             return Ok((ip, port));
@@ -232,11 +233,7 @@ fn parse_env_bool(name: &str, value: &str) -> Result<bool> {
     match value.trim().to_ascii_lowercase().as_str() {
         "1" | "true" | "yes" | "on" => Ok(true),
         "0" | "false" | "no" | "off" | "" => Ok(false),
-        other => anyhow::bail!(
-            "{} must be true/false or 1/0, got \"{}\"",
-            name,
-            other
-        ),
+        other => anyhow::bail!("{} must be true/false or 1/0, got \"{}\"", name, other),
     }
 }
 
