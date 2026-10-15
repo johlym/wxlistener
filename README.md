@@ -1,6 +1,6 @@
 # wxlistener
 
-A fast, standalone command-line tool written in Rust to read live data from GW1000/GW2000/Ecowitt Gateway weather stations.
+A fast, standalone command-line tool written in Rust to read live data from GW3000/GW1100/GW2000/Ecowitt Gateway weather stations.
 
 > [!WARNING]
 > This code isn't very good. I don't recommend using it–I built this largely for myself and myself alone.
@@ -60,7 +60,7 @@ A fast, standalone command-line tool written in Rust to read live data from GW10
 - **Database support** - Store data in PostgreSQL or MySQL databases
 - **MQTT publishing** - Publish data to MQTT brokers for home automation
 - **HTTP endpoint publishing** - POST weather data to custom HTTP endpoints
-- **Supports all GW1000/GW2000 devices** - Compatible with Ecowitt Gateway API
+- **GW3000 HTTP API by default** - Local `get_livedata_info` on port 80, with `--legacy` for the old TCP API
 - **Docker support** - Run in containers for easy deployment
 
 ## TODO
@@ -117,7 +117,8 @@ docker-compose up
 **Environment Variables:**
 
 - `WXLISTENER_IP` - Your weather station IP (required)
-- `WXLISTENER_PORT` - Port (default: 45000)
+- `WXLISTENER_PORT` - Gateway port (default: 80 for HTTP, 45000 with `WXLISTENER_LEGACY=1`)
+- `WXLISTENER_LEGACY` - Set to `1` to use the old TCP API
 - `WXLISTENER_INTERVAL` - Polling interval in seconds (default: 60)
 - `WXLISTENER_FORMAT` - Output format: `text` or `json` (default: text)
 
@@ -168,11 +169,11 @@ See [docs/proxmox.md](docs/proxmox.md) for detailed Proxmox deployment guide.
 ### Command Line Arguments
 
 ```bash
-# Using IP address directly
+# HTTP API (default, port 80)
 wxlistener --ip 10.31.100.42
 
-# Using custom port
-wxlistener --ip 10.31.100.42 --port 45000
+# Legacy TCP API (port 45000)
+wxlistener --ip 10.31.100.42 --legacy
 
 # Using config file
 wxlistener --config wxlistener.toml
@@ -225,7 +226,9 @@ Create a `wxlistener.toml` file:
 ```toml
 # WXListener Configuration File
 ip = "10.31.100.42"
-port = 45000
+# legacy = true       # old TCP API; default port becomes 45000
+# port = 80            # HTTP default. Port 45000 without legacy is an error.
+# rain_source = "rain" # or "piezo"
 
 # Optional: Database configuration
 [database]
@@ -404,9 +407,10 @@ See the [HTTP Output documentation](docs/http-output.md) for detailed configurat
 
 ```
 ============================================================
-GW1000/Ecowitt Gateway Weather Station Listener
+GW3000/Ecowitt Gateway Weather Station Listener
 ============================================================
-Target device: 10.31.100.42:45000
+Transport: HTTP API
+Target device: 10.31.100.42:80
 
 --- Device Information ---
 ✓ Firmware Version: GW2000B_V3.1.4
@@ -449,10 +453,11 @@ Returns structured JSON data perfect for parsing or piping to other tools.
 
 ## Supported Devices
 
-- GW1000
+- GW3000 (local HTTP API)
 - GW1100
 - GW1200
 - GW2000
+- GW1000 (legacy TCP: `--legacy`)
 
 ### Alleged Support
 
@@ -470,7 +475,8 @@ The tool reads and displays:
 - **Pressure**: Absolute and relative barometer
 - **Wind**: Speed, direction, gusts, daily max
 - **Rain**: Rate, daily, weekly, monthly, yearly totals
-- **Light**: UV index, UV radiation, luminosity
+- **Light**: UV index, UV radiation, luminosity (HTTP `W/m²` is converted with `lux = (W/m²) / 0.0079`)
+- **Batteries**: voltage on `soil_battery_chN` / `tf_battery_chN`, and HTTP battery level on `soil_battery_level_chN` / `tf_battery_level_chN`
 - **System**: Device memory usage
 
 ## Requirements

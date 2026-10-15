@@ -25,11 +25,13 @@
 
 ```
 src/
-├── main.rs       - Entry point and main application logic
-├── client.rs     - GW1000Client implementation (TCP communication)
-├── config.rs     - Command-line arguments and config file parsing
-├── decoder.rs    - Binary data decoding functions
-└── output.rs     - Output formatting (text and JSON)
+├── main.rs         - Entry point and main application logic
+├── gateway.rs      - HTTP or legacy TCP selection
+├── http_gateway.rs - Local HTTP API client and unit conversion
+├── client.rs       - GW1000Client implementation (legacy TCP)
+├── config.rs       - Command-line arguments and config file parsing
+├── decoder.rs      - Binary data decoding functions
+└── output.rs       - Output formatting (text and JSON)
 ```
 
 ## Module Responsibilities
@@ -41,9 +43,18 @@ src/
 - Handles continuous mode polling loop
 - Minimal logic, delegates to other modules
 
+### `gateway.rs` and `http_gateway.rs`
+
+- Default transport is the local HTTP API (`GET /get_livedata_info?` on port 80)
+- `--legacy`, TOML `legacy`, or `WXLISTENER_LEGACY` selects `GW1000Client`
+- Port 45000 without legacy, or port 80 with legacy, fails at startup
+- Display units are converted back to the TCP metric keys. `W/m²` uses `lux = (W/m²) / 0.0079`
+- `rain_source` chooses the `rain` or `piezoRain` array
+- Channel rows are emitted only when `get_sensors_info` shows the sensor registered
+
 ### `client.rs`
 
-- `GW1000Client` struct - manages connection to weather station
+- `GW1000Client` struct - legacy TCP connection to the weather station
 - Protocol implementation:
   - `build_cmd_packet()` - constructs binary command packets
   - `send_cmd()` - TCP socket communication
@@ -58,7 +69,7 @@ src/
 
 - `Args` struct - CLI argument definitions using clap
 - `Config` struct - TOML configuration file structure
-- `get_connection_info()` - resolves IP/port from args or config file
+- `gateway_settings()` - resolves IP, port, legacy mode, and rain source
 - Handles both command-line and file-based configuration
 
 ### `decoder.rs`
@@ -86,11 +97,11 @@ CLI Args/Config File
         ↓
     main.rs (parse)
         ↓
-    config.rs (resolve IP/port)
+    config.rs (resolve IP, port, legacy, rain source)
         ↓
-    client.rs (connect & send commands)
+    gateway.rs (HTTP API, or legacy TCP client.rs)
         ↓
-    decoder.rs (parse binary responses)
+    http_gateway.rs or decoder.rs (metric HashMap)
         ↓
     output.rs (format for display)
         ↓
@@ -164,7 +175,8 @@ cargo build --release
 ./target/release/wxlistener --config wxlistener.toml
 
 # Run with CLI args
-./target/release/wxlistener --ip 10.31.100.42 --port 45000
+./target/release/wxlistener --ip 10.31.100.42
+./target/release/wxlistener --ip 10.31.100.42 --legacy
 
 # JSON output
 ./target/release/wxlistener --ip 10.31.100.42 --format json
@@ -176,7 +188,7 @@ cargo build --release
 ./target/release/wxlistener --ip 10.31.100.42 --debug-sensors
 ```
 
-`--debug-sensors` dumps `CMD_READ_SENSOR_ID_NEW` entries (with type names), walks livedata for `ITEM_TF_USR*` / legacy `ITEM_SOILTEMP*`, prints listener-decoded `soil_*` and `tf_*` keys, and reports whether multi-channel WN34/WN34S temp probes are present. Livedata temperatures come from `ITEM_TF_USR1`–`8` (`tf_temp_chN` / `tf_battery_chN`); WH51 remains moisture-only under `soil_*`.
+`--debug-sensors` on the legacy TCP client dumps `CMD_READ_SENSOR_ID_NEW` entries (with type names), walks livedata for `ITEM_TF_USR*` / legacy `ITEM_SOILTEMP*`, prints listener-decoded `soil_*` and `tf_*` keys, and reports whether multi-channel WN34/WN34S temp probes are present. On the HTTP API it prints `get_sensors_info` and the mapped channel keys. Livedata temperatures come from `ITEM_TF_USR1`–`8` or HTTP `ch_temp` (`tf_temp_chN` / `tf_battery_chN` volts, plus `tf_battery_level_chN`); WH51 remains moisture-only under `soil_*`, with `soil_battery_level_chN` for the HTTP battery level.
 
 ## Dependencies
 

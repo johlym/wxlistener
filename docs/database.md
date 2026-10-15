@@ -103,8 +103,10 @@ The table is created automatically with the following columns:
 | `day_max_wind` | DOUBLE                    | Daily maximum wind speed (m/s)     |
 | `soil_moisture_ch1`…`ch8` | DOUBLE | Soil moisture WH51 channels 1–8 (%) |
 | `soil_battery_ch1`…`ch8` | DOUBLE | WH51 battery voltage (V) |
+| `soil_battery_level_ch1`…`ch8` | DOUBLE | HTTP battery level for WH51 (not voltage) |
 | `tf_temp_ch1`…`ch8` | DOUBLE | Multi-channel temp probe WN34/WN34S (°C, same scale as `outtemp`) |
 | `tf_battery_ch1`…`ch8` | DOUBLE | WN34/WN34S battery voltage (V) |
+| `tf_battery_level_ch1`…`ch8` | DOUBLE | HTTP battery level for temp probes (not voltage) |
 | `th_temp_ch1`…`ch8` | DOUBLE | WH31/WN31 dip-switch temp+humidity temperature (°C) |
 | `th_humid_ch1`…`ch8` | DOUBLE | WH31/WN31 humidity (%) |
 | `th_battery_low_ch1`…`ch8` | DOUBLE | WH31/WN31 battery flag (1 = low, 0 = normal) |
@@ -120,10 +122,12 @@ If you already have a `wx_records` table from an older wxlistener version, add c
 psql -U postgres -d weather -f docs/sql-examples/alter-add-soil-postgres.sql
 # PostgreSQL — temp-probe (WN34/WN34S) columns
 psql -U postgres -d weather -f docs/sql-examples/alter-add-tf-postgres.sql
+psql -U postgres -d weather -f docs/sql-examples/alter-add-battery-level-postgres.sql
 
 # MySQL
 mysql -u root -p weather < docs/sql-examples/alter-add-soil-mysql.sql
 mysql -u root -p weather < docs/sql-examples/alter-add-tf-mysql.sql
+mysql -u root -p weather < docs/sql-examples/alter-add-battery-level-mysql.sql
 ```
 
 Without this migration, INSERTs that include soil or `tf_*` fields will fail.

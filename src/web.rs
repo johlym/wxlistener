@@ -16,7 +16,7 @@ use tokio::sync::broadcast;
 use tokio::time;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 
-use crate::client::GW1000Client;
+use crate::gateway::{blocking_gateway, Gateway};
 use crate::output::format_value;
 
 const HTML_PAGE: &str = r#"<!DOCTYPE html>
@@ -180,32 +180,27 @@ pub struct WebServerConfig {
 }
 
 /// Spawns the web server as a background task
-pub fn run_web_server_background(config: WebServerConfig, gw_ip: String, gw_port: u16) {
+pub fn run_web_server_background(config: WebServerConfig, gateway: Gateway) {
     tokio::spawn(async move {
-        if let Err(e) = run_web_server(config, gw_ip, gw_port).await {
+        if let Err(e) = run_web_server(config, gateway).await {
             eprintln!("[ERROR] Web server error: {}", e);
         }
     });
 }
 
-pub async fn run_web_server(
-    config: WebServerConfig,
-    gw_ip: String,
-    gw_port: u16,
-) -> anyhow::Result<()> {
+pub async fn run_web_server(config: WebServerConfig, gateway: Gateway) -> anyhow::Result<()> {
     let (tx, _rx) = broadcast::channel::<String>(100);
     let tx = Arc::new(tx);
 
     // Spawn background task to fetch weather data
     let tx_clone = tx.clone();
     tokio::spawn(async move {
-        let client = GW1000Client::new(gw_ip, gw_port);
         let mut interval = time::interval(Duration::from_secs(config.interval));
 
         loop {
             interval.tick().await;
 
-            match client.get_livedata() {
+            match blocking_gateway(gateway.clone(), |gateway| gateway.get_livedata()).await {
                 Ok(data) => {
                     let timestamp = Utc::now();
                     let mut formatted_data = std::collections::HashMap::new();

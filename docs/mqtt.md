@@ -319,7 +319,7 @@ wxlistener publishes messages with **QoS 1** (at least once delivery):
 
 ```toml
 ip = "192.168.1.50"
-port = 45000
+# HTTP API default port is 80. Use legacy = true with port 45000 for TCP.
 
 [mqtt]
 connection_string = "mqtt://localhost:1883/wx/live"
@@ -336,9 +336,10 @@ wxlistener --config wxlistener.toml
 ```
 ✓ Connected to MQTT broker (topic: wx/live)
 ============================================================
-GW1000/Ecowitt Gateway Weather Station Listener
+GW3000/Ecowitt Gateway Weather Station Listener
 ============================================================
-Target device: 192.168.1.50:45000
+Transport: HTTP API
+Target device: 192.168.1.50:80
 
 --- Continuous Mode (every 16 seconds) ---
 MQTT publishing: ENABLED

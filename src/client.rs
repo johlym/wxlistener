@@ -32,6 +32,7 @@ const WH34_SENSOR_CH8: u8 = 38;
 const SENSOR_ID_DISABLED: u32 = 0xFFFF_FFFE;
 const SENSOR_ID_RELEARN: u32 = 0xFFFF_FFFF;
 
+#[derive(Clone)]
 pub struct GW1000Client {
     ip: String,
     port: u16,

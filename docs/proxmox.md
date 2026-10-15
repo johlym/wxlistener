@@ -278,8 +278,9 @@ Edit `/etc/wxlistener/wxlistener.toml`:
 # Required: Your weather station IP
 ip = "192.168.1.50"
 
-# Optional: Custom port (default: 45000)
-port = 45000
+# Optional: legacy TCP. HTTP is the default (port 80).
+# legacy = true
+# port = 45000
 ```
 
 ### Database Configuration

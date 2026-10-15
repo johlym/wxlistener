@@ -140,13 +140,13 @@ print_section "⚙️  Setting up configuration"
 if [ ! -f "wxlistener.toml" ]; then
     cat > wxlistener.toml << 'EOF'
 # WXListener Configuration File
-# GW1000/Ecowitt Gateway Weather Station
+# GW3000/Ecowitt Gateway Weather Station
 
 # IP address of your weather station
 ip = "10.31.100.42"
 
-# Port number (default: 45000)
-port = 45000
+# HTTP API is the default (port 80). Uncomment for the legacy TCP API.
+# legacy = true
 EOF
     print_success "Created example config: wxlistener.toml"
     print_warning "Update wxlistener.toml with your device's IP address"

@@ -3,6 +3,8 @@ mod config;
 mod database;
 mod debug_sensors;
 mod decoder;
+mod gateway;
+mod http_gateway;
 mod http_output;
 mod mqtt;
 mod output;
@@ -14,10 +16,10 @@ use chrono::Utc;
 use clap::Parser;
 use std::time::Duration;
 
-use client::GW1000Client;
 use config::Args;
 use database::DatabaseWriter;
 use debug_sensors::run_debug_sensors;
+use gateway::{blocking_gateway, Gateway};
 use http_output::HttpPublisher;
 use mqtt::MqttPublisher;
 use output::print_livedata;
@@ -43,19 +45,22 @@ async fn main() -> Result<()> {
     }
 
     // Get connection info from args or config
-    let (ip, port) = match args.get_connection_info() {
-        Ok(info) => info,
+    let settings = match args.gateway_settings() {
+        Ok(settings) => settings,
         Err(e) => {
             eprintln!("Error: {}", e);
             std::process::exit(1);
         }
     };
+    let ip = settings.ip.clone();
+    let port = settings.port;
+    let legacy = settings.legacy;
 
-    let client = GW1000Client::new(ip.clone(), port);
+    let gateway = Gateway::connect(&settings)?;
 
     // One-shot sensor inventory probe (WN34S / WH34 TF validation)
     if args.debug_sensors {
-        run_debug_sensors(&client)?;
+        run_debug_sensors(&gateway)?;
         return Ok(());
     }
 
@@ -114,19 +119,23 @@ async fn main() -> Result<()> {
     };
 
     println!("============================================================");
-    println!("GW1000/Ecowitt Gateway Weather Station Listener");
+    println!("GW3000/Ecowitt Gateway Weather Station Listener");
     println!("============================================================");
+    println!(
+        "Transport: {}",
+        if legacy { "legacy TCP" } else { "HTTP API" }
+    );
     println!("Target device: {}:{}", ip, port);
     println!();
 
     // Get device info
     println!("--- Device Information ---");
-    match client.get_firmware_version() {
+    match blocking_gateway(gateway.clone(), |gateway| gateway.get_firmware_version()).await {
         Ok(version) => println!("[OK] Firmware Version: {}", version),
         Err(e) => println!("[ERROR] Failed to get firmware: {}", e),
     }
 
-    match client.get_mac_address() {
+    match blocking_gateway(gateway.clone(), |gateway| gateway.get_mac_address()).await {
         Ok(mac) => println!("[OK] MAC Address: {}", mac),
         Err(e) => println!("[ERROR] Failed to get MAC: {}", e),
     }
@@ -153,7 +162,7 @@ async fn main() -> Result<()> {
             port: args.web_port,
             interval: args.continuous,
         };
-        run_web_server_background(web_config, ip.clone(), port);
+        run_web_server_background(web_config, gateway.clone());
         println!(
             "Web server: ENABLED (http://{}:{})",
             args.web_host, args.web_port
@@ -163,7 +172,7 @@ async fn main() -> Result<()> {
     println!("Press Ctrl+C to stop\n");
 
     loop {
-        match client.get_livedata() {
+        match blocking_gateway(gateway.clone(), |gateway| gateway.get_livedata()).await {
             Ok(data) => {
                 let timestamp = Utc::now();
 

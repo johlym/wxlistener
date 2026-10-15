@@ -3,6 +3,8 @@ pub mod config;
 pub mod database;
 pub mod debug_sensors;
 pub mod decoder;
+pub mod gateway;
+pub mod http_gateway;
 pub mod http_output;
 pub mod mqtt;
 pub mod output;

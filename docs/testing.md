@@ -138,8 +138,11 @@ cargo test --release
 ### Test with Real Device
 
 ```bash
-# Single read
-./target/release/wxlistener --ip YOUR_IP --port 45000
+# HTTP API (default port 80)
+./target/release/wxlistener --ip YOUR_IP
+
+# Legacy TCP API
+./target/release/wxlistener --ip YOUR_IP --legacy
 
 # Continuous monitoring
 ./target/release/wxlistener --ip YOUR_IP --continuous 10
@@ -157,7 +160,8 @@ Create `test_config.toml`:
 
 ```toml
 ip = "10.31.100.42"
-port = 45000
+# legacy = true
+# port = 45000
 ```
 
 Run:
@@ -359,7 +363,9 @@ cargo test --test client_integration_test
 
 **Mock server features:**
 
-- Simulates GW1000/GW2000 device responses
+- Simulates GW1000/GW2000 legacy TCP responses
+
+HTTP mapping is covered by `http_gateway` unit tests, including a local HTTP server and the captured imperial `get_livedata_info` body.
 - Tests firmware version retrieval
 - Tests MAC address retrieval
 - Tests live data parsing
