@@ -180,6 +180,18 @@ impl WeatherMeasurement {
         }
     }
 
+    /// leahillwx requires `uv` and `uvi`. Ecowitt HTTP live-data usually has
+    /// UVI (`0x17`) and omits raw UV (`0x16`); night / no solar sensor omits both.
+    /// Fill zeros only after `has_sensor_data` so a timestamp-only poll still skips.
+    pub fn apply_ingest_defaults(&mut self) {
+        if self.uv.is_none() {
+            self.uv = Some(0);
+        }
+        if self.uvi.is_none() {
+            self.uvi = Some(0);
+        }
+    }
+
     /// True when at least one sensor reading is present (not just a timestamp).
     /// Incomplete polls that would only serialize `reading_date_time` are rejected.
     pub fn has_sensor_data(&self) -> bool {
@@ -451,7 +463,7 @@ impl HttpPublisher {
     /// for retry; permanent client errors (4xx except 429) are dropped so they cannot
     /// block later good readings.
     pub async fn publish(&self, data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) {
-        let measurement = WeatherMeasurement::from_data(data, timestamp);
+        let mut measurement = WeatherMeasurement::from_data(data, timestamp);
         if !measurement.has_sensor_data() {
             eprintln!(
                 "  [SKIP] HTTP: incomplete reading (no sensor fields) at {}, not sent",
@@ -459,6 +471,7 @@ impl HttpPublisher {
             );
             return;
         }
+        measurement.apply_ingest_defaults();
 
         let payload = QueuedPayload {
             weather_measurement: measurement,
@@ -720,6 +733,39 @@ mod tests {
         assert!(measurement.windchill.is_none());
         assert!(measurement.heatindex.is_none());
         assert!(measurement.has_sensor_data());
+    }
+
+    #[test]
+    fn http_livedata_without_raw_uv_still_serializes_uv_zero() {
+        // Captured GW3000 common_list has 0x17 UVI and no 0x16 UV.
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 5.5);
+        data.insert("outhumid".to_string(), 97.0);
+        data.insert("uvi".to_string(), 0.0);
+        data.insert("light".to_string(), 0.0);
+
+        let mut measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert!(measurement.uv.is_none());
+        assert_eq!(measurement.uvi, Some(0));
+        assert!(measurement.has_sensor_data());
+
+        measurement.apply_ingest_defaults();
+        assert_eq!(measurement.uv, Some(0));
+        assert_eq!(measurement.uvi, Some(0));
+
+        let json = serde_json::to_string(&measurement).unwrap();
+        assert!(json.contains("\"uv\":0"));
+        assert!(json.contains("\"uvi\":0"));
+    }
+
+    #[test]
+    fn ingest_defaults_do_not_make_empty_polls_look_complete() {
+        let mut measurement = WeatherMeasurement::from_data(&HashMap::new(), &Utc::now());
+        assert!(!measurement.has_sensor_data());
+        measurement.apply_ingest_defaults();
+        // Defaults are only applied after a real reading is present.
+        assert_eq!(measurement.uv, Some(0));
+        assert!(!WeatherMeasurement::from_data(&HashMap::new(), &Utc::now()).has_sensor_data());
     }
 
     #[test]
