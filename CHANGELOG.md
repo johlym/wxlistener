@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2026-10-18
+
+### Fixed
+
+- HTTP POST always includes `uv`. The ingest API requires it, and GW3000 livedata often sends UVI without UV radiation. A real `uv` value is still sent when the station provides one.
+
 ## [0.5.0] - 2026-10-15
 
 ### Added
@@ -8,10 +14,6 @@
 - `rain_source` config (`rain` or `piezo`) to choose which rain array fills `rain_*`.
 - Battery-level keys `soil_battery_level_chN` and `tf_battery_level_chN`, plus HTTP POST `battery_level` and database columns. Voltage stays on the existing `*_battery_chN` keys.
 - `--debug-sensors` inventory output for the HTTP API via `get_sensors_info`.
-
-### Fixed
-
-- HTTP POST always includes `uv`. The ingest API requires it, and GW3000 livedata often sends UVI without UV radiation.
 
 ### Changed
 
