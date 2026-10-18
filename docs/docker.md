@@ -302,6 +302,8 @@ The container connects out to the station. It does not listen on the gateway por
 | `WXLISTENER_IP`       | Weather station IP address       | -       | ✅ Yes   |
 | `WXLISTENER_PORT`     | Weather station port             | `80`    | No       |
 | `WXLISTENER_LEGACY`   | `1` selects the legacy TCP API   | unset   | No       |
+
+Port **45000** without `WXLISTENER_LEGACY=1`, or port **80** with it, fails startup (`check_port_transport`). The mock device in `bin/mock-device` is legacy TCP only — use port 45000 **and** `WXLISTENER_LEGACY=1`.
 | `WXLISTENER_INTERVAL` | Polling interval (seconds)       | `60`    | No       |
 | `WXLISTENER_FORMAT`   | Output format (`text` or `json`) | `text`  | No       |
 | `RUST_LOG`            | Logging level                    | `info`  | No       |
