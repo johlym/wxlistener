@@ -63,5 +63,5 @@ CMD ["legacy=; case \"$WXLISTENER_LEGACY\" in 1|true|TRUE|yes|YES|on|ON) legacy=
 # Labels
 LABEL org.opencontainers.image.title="wxlistener"
 LABEL org.opencontainers.image.description="GW1000/Ecowitt Gateway Weather Station Listener"
-LABEL org.opencontainers.image.version="0.5.0"
+LABEL org.opencontainers.image.version="0.5.1"
 LABEL org.opencontainers.image.authors="Johnathan Lyman"
