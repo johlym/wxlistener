@@ -170,7 +170,9 @@ impl WeatherMeasurement {
             rain_event: data.get("rain_event").copied(),
             rain_rate: data.get("rain_rate").copied(),
             temperature: data.get("outtemp").copied(),
-            uv: data.get("uv").map(|v| *v as i32),
+            // The ingest API requires uv. GW3000 livedata often includes UVI (0x17)
+            // and omits UV radiation (0x16); send 0 rather than drop the field.
+            uv: Some(data.get("uv").map(|v| *v as i32).unwrap_or(0)),
             uvi: data.get("uvi").map(|v| *v as i32),
             wind_dir: data.get("wind_dir").map(|v| *v as i32),
             wind_speed: data.get("wind_speed").copied(),
@@ -720,6 +722,12 @@ mod tests {
         assert!(measurement.windchill.is_none());
         assert!(measurement.heatindex.is_none());
         assert!(measurement.has_sensor_data());
+        assert_eq!(measurement.uv, Some(0));
+        let json = serde_json::to_string(&WeatherPayload {
+            weather_measurement: measurement,
+        })
+        .unwrap();
+        assert!(json.contains("\"uv\":0"));
     }
 
     #[test]

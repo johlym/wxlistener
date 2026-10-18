@@ -9,6 +9,10 @@
 - Battery-level keys `soil_battery_level_chN` and `tf_battery_level_chN`, plus HTTP POST `battery_level` and database columns. Voltage stays on the existing `*_battery_chN` keys.
 - `--debug-sensors` inventory output for the HTTP API via `get_sensors_info`.
 
+### Fixed
+
+- HTTP POST always includes `uv`. The ingest API requires it, and GW3000 livedata often sends UVI without UV radiation.
+
 ### Changed
 
 - The HTTP API is the default transport on port 80. `--legacy`, `legacy = true`, or `WXLISTENER_LEGACY=1` selects the old TCP client on port 45000.
