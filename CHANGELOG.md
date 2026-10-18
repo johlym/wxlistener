@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2026-10-18
+
+### Fixed
+
+- HTTP POST always includes `uv`. The ingest API requires it, and GW3000 livedata often sends UVI without UV radiation. A real `uv` value is still sent when the station provides one.
+
 ## [0.5.0] - 2026-10-15
 
 ### Added

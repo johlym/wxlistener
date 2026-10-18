@@ -155,7 +155,7 @@ pub struct WeatherMeasurement {
 impl WeatherMeasurement {
     /// Create a WeatherMeasurement from raw sensor data
     pub fn from_data(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) -> Self {
-        Self {
+        let mut measurement = Self {
             reading_date_time: timestamp.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
             barometer_abs: data.get("absbarometer").copied(),
             barometer_rel: data.get("relbarometer").copied(),
@@ -177,7 +177,14 @@ impl WeatherMeasurement {
             soil: Self::extract_soil(data),
             temp_humidity: Self::extract_temp_humidity(data),
             temp_probes: Self::extract_temp_probes(data),
+        };
+        // The ingest API requires uv. GW3000 livedata often includes UVI (0x17)
+        // and omits UV radiation (0x16). Fill 0 only when some other reading is
+        // present, so a timestamp-only payload stays incomplete and is not sent.
+        if measurement.uv.is_none() && measurement.has_sensor_data() {
+            measurement.uv = Some(0);
         }
+        measurement
     }
 
     /// True when at least one sensor reading is present (not just a timestamp).
@@ -720,6 +727,12 @@ mod tests {
         assert!(measurement.windchill.is_none());
         assert!(measurement.heatindex.is_none());
         assert!(measurement.has_sensor_data());
+        assert_eq!(measurement.uv, Some(0));
+        let json = serde_json::to_string(&WeatherPayload {
+            weather_measurement: measurement,
+        })
+        .unwrap();
+        assert!(json.contains("\"uv\":0"));
     }
 
     #[test]
