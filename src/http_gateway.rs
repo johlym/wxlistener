@@ -78,7 +78,11 @@ pub struct HttpSensor {
 }
 
 impl HttpSensor {
-    /// Registered sensors have a real id, a non-zero signal, and `idst` other than 0.
+    /// Registered sensors have a real id and `idst` other than 0.
+    ///
+    /// `signal` is RF reception quality (0–4 bars), not registration. Ecowitt's
+    /// HTTP API examples pair `idst: "1"` and a real id with `signal: "0"` while
+    /// `get_livedata_info` still includes that channel.
     pub fn is_registered(&self) -> bool {
         let id = self.id.trim();
         if id.is_empty() {
@@ -89,9 +93,6 @@ impl HttpSensor {
             return false;
         }
         if hex.eq_ignore_ascii_case("FFFFFFFE") || hex.eq_ignore_ascii_case("FFFFFFFF") {
-            return false;
-        }
-        if self.signal.unwrap_or(0) == 0 {
             return false;
         }
         if self.idst == Some(0) {
@@ -1080,14 +1081,55 @@ mod tests {
             idst: Some(1),
         };
         assert!(!disabled.is_registered());
-        let quiet = HttpSensor {
-            type_code: 14,
-            id: "10".into(),
+        let never_received = HttpSensor {
+            type_code: 11,
+            id: "FFFFFFFF".into(),
             name: String::new(),
             battery: None,
             signal: Some(0),
             idst: Some(1),
         };
-        assert!(!quiet.is_registered());
+        assert!(!never_received.is_registered());
+        let disabled_idst = HttpSensor {
+            type_code: 14,
+            id: "10".into(),
+            name: String::new(),
+            battery: None,
+            signal: Some(4),
+            idst: Some(0),
+        };
+        assert!(!disabled_idst.is_registered());
+    }
+
+    #[test]
+    fn zero_signal_registered_channel_is_mapped() {
+        // Official Ecowitt HTTP API example: WH31 CH8 has id 49, signal 0,
+        // idst 1, and ch_aisle still reports temp/humidity for channel 8.
+        let sensors = vec![HttpSensor {
+            type_code: 13,
+            id: "49".into(),
+            name: "Temp & Humidity CH8".into(),
+            battery: Some(0.0),
+            signal: Some(0),
+            idst: Some(1),
+        }];
+        let body = json!({
+            "ch_aisle": [{
+                "channel": "8",
+                "name": "",
+                "battery": "0",
+                "temp": "79.5",
+                "unit": "F",
+                "humidity": "63%"
+            }]
+        });
+        let data = map_livedata(
+            &body,
+            &UnitPrefs::default(),
+            Some(&sensors),
+            RainSource::Rain,
+        );
+        assert_close(&data, "th_temp_ch8", 26.4);
+        assert_close(&data, "th_humid_ch8", 63.0);
     }
 }
