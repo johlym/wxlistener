@@ -130,7 +130,7 @@ Data is POSTed as JSON with the following structure:
 | `rain_event`        | `rain_event`          | float   | Rain since event started (mm)        |
 | `rain_rate`         | `rain_rate`           | float   | Current rain rate (mm/h)             |
 | `temperature`       | `outtemp`             | float   | Outdoor temperature (°C)             |
-| `uv`                | `uv`                  | integer | UV radiation. Sent as `0` when the station omits it, because ingest requires the field. |
+| `uv`                | `uv`                  | integer | UV radiation. Omitted when the station does not report register 0x16 so ingest can store NULL. |
 | `uvi`               | `uvi`                 | integer | UV index                             |
 | `wind_dir`          | `wind_dir`            | integer | Wind direction (degrees)             |
 | `wind_speed`        | `wind_speed`          | float   | Current wind speed (m/s)             |

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.2] - 2026-10-21
+
+### Fixed
+
+- HTTP POST omits `uv` when live-data has no register 0x16. Inventing `0` made leahillwx store a fake zero after ingest started treating a missing radiation register as NULL, so UV averages and peaks were pulled to zero. `uvi` is still sent as `0` when the station omits it.
+
 ## [0.5.1] - 2026-10-18
 
 ### Fixed

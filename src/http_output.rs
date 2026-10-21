@@ -155,7 +155,7 @@ pub struct WeatherMeasurement {
 impl WeatherMeasurement {
     /// Create a WeatherMeasurement from raw sensor data
     pub fn from_data(data: &HashMap<String, f64>, timestamp: &DateTime<Utc>) -> Self {
-        let mut measurement = Self {
+        let measurement = Self {
             reading_date_time: timestamp.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
             barometer_abs: data.get("absbarometer").copied(),
             barometer_rel: data.get("relbarometer").copied(),
@@ -178,21 +178,17 @@ impl WeatherMeasurement {
             temp_humidity: Self::extract_temp_humidity(data),
             temp_probes: Self::extract_temp_probes(data),
         };
-        // The ingest API requires uv. GW3000 livedata often includes UVI (0x17)
-        // and omits UV radiation (0x16). Fill 0 only when some other reading is
-        // present, so a timestamp-only payload stays incomplete and is not sent.
-        if measurement.uv.is_none() && measurement.has_sensor_data() {
-            measurement.uv = Some(0);
-        }
         measurement
     }
 
-    /// leahillwx requires `uv` and `uvi`. Ecowitt HTTP live-data usually has
-    /// UVI (`0x17`) and omits raw UV (`0x16`); night / no solar sensor omits both.
-    /// Fill zeros only after `has_sensor_data` so a timestamp-only poll still skips.
+    /// leahillwx still requires `uvi`. Ecowitt HTTP live-data usually has UVI
+    /// (`0x17`) and omits raw UV (`0x16`). Do not invent `uv: 0` — ingest now
+    /// stores an omitted radiation register as NULL so AVG/MAX/MIN ignore it.
+    /// Fill `uvi` only after a real reading is present so a timestamp-only
+    /// poll still skips.
     pub fn apply_ingest_defaults(&mut self) {
-        if self.uv.is_none() {
-            self.uv = Some(0);
+        if !self.has_sensor_data() {
+            return;
         }
         if self.uvi.is_none() {
             self.uvi = Some(0);
@@ -740,35 +736,49 @@ mod tests {
         assert!(measurement.windchill.is_none());
         assert!(measurement.heatindex.is_none());
         assert!(measurement.has_sensor_data());
-        assert_eq!(measurement.uv, Some(0));
+        assert!(measurement.uv.is_none());
         let json = serde_json::to_string(&WeatherPayload {
             weather_measurement: measurement,
         })
         .unwrap();
-        assert!(json.contains("\"uv\":0"));
+        assert!(!json.contains("\"uv\""));
     }
 
     #[test]
-    fn http_livedata_without_raw_uv_still_serializes_uv_zero() {
+    fn http_livedata_without_raw_uv_omits_uv() {
         // Captured GW3000 common_list has 0x17 UVI and no 0x16 UV.
+        // Leahillwx stores omitted uv as NULL so aggregates skip the register.
         let mut data = HashMap::new();
         data.insert("outtemp".to_string(), 5.5);
         data.insert("outhumid".to_string(), 97.0);
-        data.insert("uvi".to_string(), 0.0);
-        data.insert("light".to_string(), 0.0);
+        data.insert("uvi".to_string(), 5.0);
+        data.insert("light".to_string(), 12000.0);
 
         let mut measurement = WeatherMeasurement::from_data(&data, &Utc::now());
         assert!(measurement.uv.is_none());
-        assert_eq!(measurement.uvi, Some(0));
+        assert_eq!(measurement.uvi, Some(5));
         assert!(measurement.has_sensor_data());
 
         measurement.apply_ingest_defaults();
-        assert_eq!(measurement.uv, Some(0));
-        assert_eq!(measurement.uvi, Some(0));
+        assert!(measurement.uv.is_none());
+        assert_eq!(measurement.uvi, Some(5));
 
         let json = serde_json::to_string(&measurement).unwrap();
-        assert!(json.contains("\"uv\":0"));
-        assert!(json.contains("\"uvi\":0"));
+        assert!(!json.contains("\"uv\""));
+        assert!(json.contains("\"uvi\":5"));
+    }
+
+    #[test]
+    fn ingest_defaults_fill_missing_uvi_but_not_uv() {
+        let mut data = HashMap::new();
+        data.insert("outtemp".to_string(), 20.0);
+        let mut measurement = WeatherMeasurement::from_data(&data, &Utc::now());
+        assert!(measurement.uv.is_none());
+        assert!(measurement.uvi.is_none());
+
+        measurement.apply_ingest_defaults();
+        assert!(measurement.uv.is_none());
+        assert_eq!(measurement.uvi, Some(0));
     }
 
     #[test]
@@ -776,8 +786,9 @@ mod tests {
         let mut measurement = WeatherMeasurement::from_data(&HashMap::new(), &Utc::now());
         assert!(!measurement.has_sensor_data());
         measurement.apply_ingest_defaults();
-        // Defaults are only applied after a real reading is present.
-        assert_eq!(measurement.uv, Some(0));
+        assert!(measurement.uv.is_none());
+        assert!(measurement.uvi.is_none());
+        assert!(!measurement.has_sensor_data());
         assert!(!WeatherMeasurement::from_data(&HashMap::new(), &Utc::now()).has_sensor_data());
     }
 
