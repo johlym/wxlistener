@@ -130,8 +130,8 @@ Data is POSTed as JSON with the following structure:
 | `rain_event`        | `rain_event`          | float   | Rain since event started (mm)        |
 | `rain_rate`         | `rain_rate`           | float   | Current rain rate (mm/h)             |
 | `temperature`       | `outtemp`             | float   | Outdoor temperature (°C)             |
-| `uv`                | `uv`                  | integer | UV radiation. Sent as `0` when the station omits it, because ingest requires the field. |
-| `uvi`               | `uvi`                 | integer | UV index                             |
+| `uv`                | `uv`                  | integer | UV radiation. On POST, sent as `0` when the station omits it (`apply_ingest_defaults`). |
+| `uvi`               | `uvi`                 | integer | UV index. On POST, sent as `0` when the station omits it (same default as `uv`). |
 | `wind_dir`          | `wind_dir`            | integer | Wind direction (degrees)             |
 | `wind_speed`        | `wind_speed`          | float   | Current wind speed (m/s)             |
 | `soil[].channel`    | (1–8)                 | integer | WH51 soil moisture channel           |
@@ -147,7 +147,16 @@ Data is POSTed as JSON with the following structure:
 | `temp_probes[].battery` | `tf_battery_chN`  | float   | WN34/WN34S battery voltage (V)       |
 | `temp_probes[].battery_level` | `tf_battery_level_chN` | integer | HTTP battery level, not voltage |
 
-**Note**: Fields are only included if the weather station provides them. Missing sensor data results in omitted fields (not null values). The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
+**Note**: Most fields are included only if the weather station provides them (omitted, not null). **Exception:** after `has_sensor_data` is true, POST always sends `uv` and `uvi`; missing values become `0`. Timestamp-only polls are not POSTed and do not receive those defaults. The `soil`, `temp_humidity`, and `temp_probes` arrays are omitted when empty. WH51 is moisture-only; WN34/WN34S probes use `ITEM_TF_USR*` and appear under `temp_probes`. WH31/WN31 sensors (dip-switch channels 1–8) use `ITEM_TEMP*` / `ITEM_HUMI*` and appear under `temp_humidity`; battery-only channels are not emitted.
+
+### Gateway transport
+
+| Topic | Default HTTP (port 80) | Legacy TCP (`--legacy`, port 45000) |
+| ----- | ---------------------- | ----------------------------------- |
+| Channel registration | `get_sensors_info`: real `id` + `idst ≠ 0`. **`signal` is RF quality, not registration** — `signal: 0` can still map `th_*` / `soil_*` / `tf_*`. | SENSOR_ID battery merge **skips `signal == 0`**. Livedata TLVs may still fill temps/humidity. |
+| Inventory failure | `[WARN] Failed to read sensor inventory` → channel arrays omitted even if livedata lists `ch_*`. Console/rain still map. | n/a |
+| `soil[].battery_level` / `temp_probes[].battery_level` | From `get_livedata_info` `battery` | Usually absent (voltage keys only) |
+| `temp_humidity[].battery_low` | Not set (`th_battery_low_chN` is absent) | From TCP SENSOR_ID when `signal ≠ 0` |
 
 ### Example Payload
 
@@ -234,7 +243,7 @@ leahillwx ingest expects **204** (single) or **202** (bulk). Any 2xx from your e
 | "Invalid HTTP endpoint URL" | Malformed URL at startup | Include a scheme (`https://…`) |
 | `[WARN] HTTP publish failed (will retry)` / `retrying in 1s` | Transient failure | Check reachability; raise `timeout` if the endpoint is slow |
 | `[DROP] HTTP: permanent failure` | 4xx (not 429) | Fix auth or payload; that reading is gone |
-| `[SKIP] HTTP: incomplete reading` | Poll produced no sensor fields | Gateway livedata was empty; not a config error |
+| `[SKIP] HTTP: incomplete reading` | Poll produced no sensor fields | Gateway livedata was empty, or only a timestamp arrived. Can follow `[WARN] Failed to read sensor inventory` when only console fields parsed. Not a config error. |
 
 ## Integration Examples
 
