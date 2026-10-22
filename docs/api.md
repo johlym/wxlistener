@@ -163,6 +163,8 @@ The `data` object contains weather measurements. Available fields depend on your
 
 REST `GET /api/v1/current.json` uses these **flat** formatted keys. The outbound HTTP collector (`[http]` in `wxlistener.toml`) instead POSTs nested `soil[]` / `temp_probes[]` / `temp_humidity[]` arrays — see [`http-output.md`](http-output.md). `*_battery_level_*` appear when the listener is on the default GW3000 HTTP gateway (`get_livedata_info`); legacy TCP (`--legacy`) still fills voltage / `th_battery_low_*` only.
 
+**Signal vs registration:** the HTTP gateway treats `signal` as RF quality and still maps a channel when `id` + `idst` say it is registered (`signal: 0` is fine). Legacy TCP SENSOR_ID battery merge skips `signal == 0`, so `th_battery_low_*` / SENSOR_ID voltages disappear on that path. REST JSON does **not** apply the outbound POST ingest defaults — `uv` / `uvi` appear here only when the live map has them.
+
 **Note**: Not all fields may be present. Available fields depend on the sensors connected to your weather station.
 
 ## Usage Examples
