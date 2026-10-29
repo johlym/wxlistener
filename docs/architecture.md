@@ -50,7 +50,7 @@ src/
 - Port 45000 without legacy, or port 80 with legacy, fails at startup
 - Display units are converted back to the TCP metric keys. `W/m²` uses `lux = (W/m²) / 0.0079`
 - `rain_source` chooses the `rain` or `piezoRain` array
-- Channel rows are emitted only when `get_sensors_info` shows the sensor registered
+- Channel rows are emitted only when `get_sensors_info` shows the sensor registered (`id` + `idst`, not `signal`). `signal: 0` is still registered on HTTP. A failed inventory fetch skips all `ch_*` arrays.
 
 ### `client.rs`
 

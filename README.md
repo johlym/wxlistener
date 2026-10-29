@@ -399,6 +399,8 @@ Data is POSTed as JSON with raw numeric values (no units):
 }
 ```
 
+On POST, a complete reading always includes `uv` and `uvi` (missing values become `0`) so leahillwx ingest does not 422. A timestamp-only poll is `[SKIP]`ped and is not POSTed — see [Error Handling](docs/http-output.md#error-handling).
+
 See the [HTTP Output documentation](docs/http-output.md) for detailed configuration and integration examples.
 
 ## Output Example
@@ -476,7 +478,7 @@ The tool reads and displays:
 - **Wind**: Speed, direction, gusts, daily max
 - **Rain**: Rate, daily, weekly, monthly, yearly totals
 - **Light**: UV index, UV radiation, luminosity (HTTP `W/m²` is converted with `lux = (W/m²) / 0.0079`)
-- **Batteries**: voltage on `soil_battery_chN` / `tf_battery_chN`, and HTTP battery level on `soil_battery_level_chN` / `tf_battery_level_chN`
+- **Batteries**: voltage on `soil_battery_chN` / `tf_battery_chN`, and HTTP battery level on `soil_battery_level_chN` / `tf_battery_level_chN`. WH31 `th_battery_low_chN` is **legacy TCP** only; default HTTP maps WH31 temp/humidity without that flag.
 - **System**: Device memory usage
 
 ## Requirements
